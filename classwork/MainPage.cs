@@ -8,7 +8,8 @@ namespace classwork
     public partial class MainPage : Form
     {
         private string role;
-        private Dictionary<string, bool> sensorState = new Dictionary<string, bool>()
+
+        private static Dictionary<string, bool> sensorState = new Dictionary<string, bool>()
         {
             { "Temperature", true },
             { "Humidity", true },
@@ -30,13 +31,7 @@ namespace classwork
             labelLight.Text = "Light Level: -- lux";
             labelSoil.Text = "Soil Moisture: -- %";
 
-            UpdateToggleButton(btnTempToggle, "Temperature");
-            UpdateToggleButton(btnHumidityToggle, "Humidity");
-            UpdateToggleButton(btnPHToggle, "PH");
-            UpdateToggleButton(btnLightToggle, "Light");
-            UpdateToggleButton(btnSoilToggle, "Soil");
-
-            SetupAdminControls();
+            UpdateAllToggleButtons();
 
             btnTempToggle.Click += (s, e) => ToggleSensor("Temperature", btnTempToggle);
             btnHumidityToggle.Click += (s, e) => ToggleSensor("Humidity", btnHumidityToggle);
@@ -55,7 +50,16 @@ namespace classwork
         private void ToggleSensor(string sensor, Button btn)
         {
             sensorState[sensor] = !sensorState[sensor];
-            UpdateToggleButton(btn, sensor);
+            UpdateAllToggleButtons();
+        }
+
+        private void UpdateAllToggleButtons()
+        {
+            UpdateToggleButton(btnTempToggle, "Temperature");
+            UpdateToggleButton(btnHumidityToggle, "Humidity");
+            UpdateToggleButton(btnPHToggle, "PH");
+            UpdateToggleButton(btnLightToggle, "Light");
+            UpdateToggleButton(btnSoilToggle, "Soil");
         }
 
         private void UpdateToggleButton(Button btn, string sensor)
@@ -70,17 +74,13 @@ namespace classwork
                 btn.Text = sensor + " OFF";
                 btn.BackColor = Color.Red;
             }
+
+            btn.Enabled = role.ToLower() == "admin";
         }
 
-        private void SetupAdminControls()
+        private void MainPage_Load(object sender, EventArgs e)
         {
-            bool isAdmin = role.ToLower() == "admin";
 
-            btnTempToggle.Visible = isAdmin;
-            btnHumidityToggle.Visible = isAdmin;
-            btnPHToggle.Visible = isAdmin;
-            btnLightToggle.Visible = isAdmin;
-            btnSoilToggle.Visible = isAdmin;
         }
     }
 }

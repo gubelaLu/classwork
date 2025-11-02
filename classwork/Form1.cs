@@ -22,7 +22,7 @@ namespace classwork
         {
             public string Username { get; set; }
             public string Password { get; set; }
-            public string Role { get; set; } // admin or user
+            public string Role { get; set; }
         }
 
         public class LoginLogEntry
@@ -71,6 +71,7 @@ namespace classwork
 
             Button SignUp = new Button { Text = "Sign up", Size = new Size(95, 30), Location = new Point(LogInBTN.Right + 15, LogInBTN.Top) };
             groupBox.Controls.Add(SignUp);
+
             Button btnShowLog = new Button
             {
                 Text = "Show Log",
@@ -78,17 +79,34 @@ namespace classwork
                 Location = new Point(SignUp.Right + 15, LogInBTN.Top)
             };
             groupBox.Controls.Add(btnShowLog);
+
             btnShowLog.Click += (s, ev) =>
             {
-                string logFilePath = GetLogFilePath();
-                if (!File.Exists(logFilePath))
+                string logFile = GetLogFilePath();
+                if (!File.Exists(logFile))
                 {
                     MessageBox.Show("No login_log.json found.", "Log");
                     return;
                 }
 
-                string logJson = File.ReadAllText(logFilePath);
-                var logs = JsonSerializer.Deserialize<List<LoginLogEntry>>(logJson);
+                string logJson = File.ReadAllText(logFile);
+                if (string.IsNullOrWhiteSpace(logJson))
+                {
+                    MessageBox.Show("Log file is empty.", "Log");
+                    return;
+                }
+
+                List<LoginLogEntry> logs = new List<LoginLogEntry>();
+                try
+                {
+                    logs = JsonSerializer.Deserialize<List<LoginLogEntry>>(logJson);
+                }
+                catch
+                {
+                    MessageBox.Show("Corrupted log file.", "Error");
+                    return;
+                }
+
                 if (logs == null || logs.Count == 0)
                 {
                     MessageBox.Show("Log is empty.", "Log");
@@ -99,7 +117,6 @@ namespace classwork
                     $"{l.Username} logged in at {l.LoginTime:yyyy-MM-dd HH:mm:ss} | Success: {l.Success}"));
                 MessageBox.Show(display, "Login Log");
             };
-
 
             timeoutTimer.Interval = 10000;
             timeoutTimer.Tick += timeoutTimer_tick;
@@ -130,6 +147,8 @@ namespace classwork
 
                     var loggedUser = users.FirstOrDefault(u => u.Username == enteredUser && u.Password == enteredPassword);
                     bool success = loggedUser != null;
+
+                    LogLoginAttempt(enteredUser, success, logFilePath);
 
                     if (success)
                     {
@@ -165,7 +184,17 @@ namespace classwork
             if (File.Exists(logFilePath))
             {
                 string existingJson = File.ReadAllText(logFilePath);
-                logs = JsonSerializer.Deserialize<List<LoginLogEntry>>(existingJson) ?? new List<LoginLogEntry>();
+                if (!string.IsNullOrWhiteSpace(existingJson))
+                {
+                    try
+                    {
+                        logs = JsonSerializer.Deserialize<List<LoginLogEntry>>(existingJson) ?? new List<LoginLogEntry>();
+                    }
+                    catch
+                    {
+                        logs = new List<LoginLogEntry>();
+                    }
+                }
             }
 
             logs.Add(new LoginLogEntry { Username = username, LoginTime = DateTime.Now, Success = success });

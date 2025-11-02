@@ -29,80 +29,126 @@
 
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            labelUser = new Label();
+            labelTemperature = new Label();
+            labelHumidity = new Label();
+            labelPH = new Label();
+            labelLight = new Label();
+            labelSoil = new Label();
+            btnTempToggle = new Button();
+            btnHumidityToggle = new Button();
+            btnPHToggle = new Button();
+            btnLightToggle = new Button();
+            btnSoilToggle = new Button();
+            btnLogout = new Button();
+            SuspendLayout();
+            // 
+            // labelUser
+            // 
+            labelUser.AutoSize = true;
+            labelUser.Font = new Font("Segoe UI", 11F);
+            labelUser.Location = new Point(20, 20);
+            labelUser.Name = "labelUser";
+            labelUser.Size = new Size(0, 20);
+            labelUser.TabIndex = 0;
+      
+            labelTemperature.AutoSize = true;
+            labelTemperature.Location = new Point(40, 70);
+            labelTemperature.Name = "labelTemperature";
+            labelTemperature.Size = new Size(0, 15);
+            labelTemperature.TabIndex = 1;
 
-            this.labelUser = new System.Windows.Forms.Label();
-            this.labelTemperature = new System.Windows.Forms.Label();
-            this.labelHumidity = new System.Windows.Forms.Label();
-            this.labelPH = new System.Windows.Forms.Label();
-            this.labelLight = new System.Windows.Forms.Label();
-            this.labelSoil = new System.Windows.Forms.Label();
-
-            this.btnTempToggle = new System.Windows.Forms.Button();
-            this.btnHumidityToggle = new System.Windows.Forms.Button();
-            this.btnPHToggle = new System.Windows.Forms.Button();
-            this.btnLightToggle = new System.Windows.Forms.Button();
-            this.btnSoilToggle = new System.Windows.Forms.Button();
-            this.btnLogout = new System.Windows.Forms.Button();
-
-            this.SuspendLayout();
-
-            this.labelUser.Location = new System.Drawing.Point(20, 20);
-            this.labelUser.AutoSize = true;
-            this.labelUser.Font = new System.Drawing.Font("Segoe UI", 11F);
-
-            this.labelTemperature.Location = new System.Drawing.Point(40, 70);
-            this.labelTemperature.AutoSize = true;
-
-            this.labelHumidity.Location = new System.Drawing.Point(40, 110);
-            this.labelHumidity.AutoSize = true;
-
-            this.labelPH.Location = new System.Drawing.Point(40, 150);
-            this.labelPH.AutoSize = true;
-
-            this.labelLight.Location = new System.Drawing.Point(40, 190);
-            this.labelLight.AutoSize = true;
-
-            this.labelSoil.Location = new System.Drawing.Point(40, 230);
-            this.labelSoil.AutoSize = true;
-
-            this.btnTempToggle.Location = new System.Drawing.Point(300, 70);
-            this.btnTempToggle.Size = new System.Drawing.Size(100, 30);
-
-            this.btnHumidityToggle.Location = new System.Drawing.Point(300, 110);
-            this.btnHumidityToggle.Size = new System.Drawing.Size(100, 30);
-
-            this.btnPHToggle.Location = new System.Drawing.Point(300, 150);
-            this.btnPHToggle.Size = new System.Drawing.Size(100, 30);
-
-            this.btnLightToggle.Location = new System.Drawing.Point(300, 190);
-            this.btnLightToggle.Size = new System.Drawing.Size(100, 30);
-
-            this.btnSoilToggle.Location = new System.Drawing.Point(300, 230);
-            this.btnSoilToggle.Size = new System.Drawing.Size(100, 30);
-
-            this.btnLogout.Location = new System.Drawing.Point(350, 20);
-            this.btnLogout.Size = new System.Drawing.Size(80, 30);
-            this.btnLogout.Text = "Log Out";
-
-            this.Controls.Add(this.labelUser);
-            this.Controls.Add(this.labelTemperature);
-            this.Controls.Add(this.labelHumidity);
-            this.Controls.Add(this.labelPH);
-            this.Controls.Add(this.labelLight);
-            this.Controls.Add(this.labelSoil);
-
-            this.Controls.Add(this.btnTempToggle);
-            this.Controls.Add(this.btnHumidityToggle);
-            this.Controls.Add(this.btnPHToggle);
-            this.Controls.Add(this.btnLightToggle);
-            this.Controls.Add(this.btnSoilToggle);
-            this.Controls.Add(this.btnLogout);
-
-            this.ClientSize = new System.Drawing.Size(450, 300);
-            this.Text = "Main Page";
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            labelHumidity.AutoSize = true;
+            labelHumidity.Location = new Point(40, 110);
+            labelHumidity.Name = "labelHumidity";
+            labelHumidity.Size = new Size(0, 15);
+            labelHumidity.TabIndex = 2;
+        
+            labelPH.AutoSize = true;
+            labelPH.Location = new Point(40, 150);
+            labelPH.Name = "labelPH";
+            labelPH.Size = new Size(0, 15);
+            labelPH.TabIndex = 3;
+            // 
+            // labelLight
+            // 
+            labelLight.AutoSize = true;
+            labelLight.Location = new Point(40, 190);
+            labelLight.Name = "labelLight";
+            labelLight.Size = new Size(0, 15);
+            labelLight.TabIndex = 4;
+            // 
+            // labelSoil
+            // 
+            labelSoil.AutoSize = true;
+            labelSoil.Location = new Point(40, 230);
+            labelSoil.Name = "labelSoil";
+            labelSoil.Size = new Size(0, 15);
+            labelSoil.TabIndex = 5;
+            // 
+            // btnTempToggle
+            // 
+            btnTempToggle.Location = new Point(300, 70);
+            btnTempToggle.Name = "btnTempToggle";
+            btnTempToggle.Size = new Size(100, 30);
+            btnTempToggle.TabIndex = 6;
+            // 
+            // btnHumidityToggle
+            // 
+            btnHumidityToggle.Location = new Point(300, 110);
+            btnHumidityToggle.Name = "btnHumidityToggle";
+            btnHumidityToggle.Size = new Size(100, 30);
+            btnHumidityToggle.TabIndex = 7;
+            // 
+            // btnPHToggle
+            // 
+            btnPHToggle.Location = new Point(300, 150);
+            btnPHToggle.Name = "btnPHToggle";
+            btnPHToggle.Size = new Size(100, 30);
+            btnPHToggle.TabIndex = 8;
+            // 
+            // btnLightToggle
+            // 
+            btnLightToggle.Location = new Point(300, 190);
+            btnLightToggle.Name = "btnLightToggle";
+            btnLightToggle.Size = new Size(100, 30);
+            btnLightToggle.TabIndex = 9;
+            // 
+            // btnSoilToggle
+            // 
+            btnSoilToggle.Location = new Point(300, 230);
+            btnSoilToggle.Name = "btnSoilToggle";
+            btnSoilToggle.Size = new Size(100, 30);
+            btnSoilToggle.TabIndex = 10;
+            // 
+            // btnLogout
+            // 
+            btnLogout.Location = new Point(350, 20);
+            btnLogout.Name = "btnLogout";
+            btnLogout.Size = new Size(80, 30);
+            btnLogout.TabIndex = 11;
+            btnLogout.Text = "Log Out";
+            // 
+            // MainPage
+            // 
+            ClientSize = new Size(450, 300);
+            Controls.Add(labelUser);
+            Controls.Add(labelTemperature);
+            Controls.Add(labelHumidity);
+            Controls.Add(labelPH);
+            Controls.Add(labelLight);
+            Controls.Add(labelSoil);
+            Controls.Add(btnTempToggle);
+            Controls.Add(btnHumidityToggle);
+            Controls.Add(btnPHToggle);
+            Controls.Add(btnLightToggle);
+            Controls.Add(btnSoilToggle);
+            Controls.Add(btnLogout);
+            Name = "MainPage";
+            Text = "Main Page";
+            Load += MainPage_Load;
+            ResumeLayout(false);
+            PerformLayout();
         }
     }
 }
