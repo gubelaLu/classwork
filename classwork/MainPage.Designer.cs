@@ -42,13 +42,11 @@
             btnSoilToggle = new Button();
             btnLogout = new Button();
             SuspendLayout();
-            // 
-            // labelUser
-            // 
+        
             labelUser.AutoSize = true;
             labelUser.Font = new Font("Segoe UI", 11F);
             labelUser.Location = new Point(20, 20);
-            labelUser.Name = "labelUser";
+            labelUser.Name = "labelUser";               
             labelUser.Size = new Size(0, 20);
             labelUser.TabIndex = 0;
       
@@ -69,68 +67,50 @@
             labelPH.Name = "labelPH";
             labelPH.Size = new Size(0, 15);
             labelPH.TabIndex = 3;
-            // 
-            // labelLight
-            // 
+          
             labelLight.AutoSize = true;
             labelLight.Location = new Point(40, 190);
             labelLight.Name = "labelLight";
             labelLight.Size = new Size(0, 15);
             labelLight.TabIndex = 4;
-            // 
-            // labelSoil
-            // 
+            
             labelSoil.AutoSize = true;
             labelSoil.Location = new Point(40, 230);
             labelSoil.Name = "labelSoil";
             labelSoil.Size = new Size(0, 15);
             labelSoil.TabIndex = 5;
-            // 
-            // btnTempToggle
-            // 
+           
             btnTempToggle.Location = new Point(300, 70);
             btnTempToggle.Name = "btnTempToggle";
             btnTempToggle.Size = new Size(100, 30);
             btnTempToggle.TabIndex = 6;
-            // 
-            // btnHumidityToggle
-            // 
+            
             btnHumidityToggle.Location = new Point(300, 110);
             btnHumidityToggle.Name = "btnHumidityToggle";
             btnHumidityToggle.Size = new Size(100, 30);
             btnHumidityToggle.TabIndex = 7;
-            // 
-            // btnPHToggle
-            // 
+            
             btnPHToggle.Location = new Point(300, 150);
             btnPHToggle.Name = "btnPHToggle";
             btnPHToggle.Size = new Size(100, 30);
             btnPHToggle.TabIndex = 8;
-            // 
-            // btnLightToggle
-            // 
+           
             btnLightToggle.Location = new Point(300, 190);
             btnLightToggle.Name = "btnLightToggle";
             btnLightToggle.Size = new Size(100, 30);
             btnLightToggle.TabIndex = 9;
-            // 
-            // btnSoilToggle
-            // 
+          
             btnSoilToggle.Location = new Point(300, 230);
             btnSoilToggle.Name = "btnSoilToggle";
             btnSoilToggle.Size = new Size(100, 30);
             btnSoilToggle.TabIndex = 10;
-            // 
-            // btnLogout
-            // 
+            
             btnLogout.Location = new Point(350, 20);
             btnLogout.Name = "btnLogout";
             btnLogout.Size = new Size(80, 30);
             btnLogout.TabIndex = 11;
             btnLogout.Text = "Log Out";
-            // 
-            // MainPage
-            // 
+           
             ClientSize = new Size(450, 300);
             Controls.Add(labelUser);
             Controls.Add(labelTemperature);
