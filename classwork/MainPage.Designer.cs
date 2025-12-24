@@ -4,25 +4,33 @@
     {
         private System.ComponentModel.IContainer components = null;
 
+        // ===== Actuator status labels =====
+        private System.Windows.Forms.Label lblFanStatus;
+        private System.Windows.Forms.Label lblHeaterStatus;
+        private System.Windows.Forms.Label lblPumpStatus;
+
+        // ===== User & sensor labels =====
         private System.Windows.Forms.Label labelUser;
         private System.Windows.Forms.Label labelTemperature;
         private System.Windows.Forms.Label labelHumidity;
-        private System.Windows.Forms.Label labelPH;
-        private System.Windows.Forms.Label labelLight;
         private System.Windows.Forms.Label labelSoil;
 
+        // ===== Buttons =====
         private System.Windows.Forms.Button btnTempToggle;
         private System.Windows.Forms.Button btnHumidityToggle;
-        private System.Windows.Forms.Button btnPHToggle;
-        private System.Windows.Forms.Button btnLightToggle;
         private System.Windows.Forms.Button btnSoilToggle;
         private System.Windows.Forms.Button btnLogout;
 
+        // ===== TextBoxes =====
         private System.Windows.Forms.TextBox txtTemperature;
         private System.Windows.Forms.TextBox txtHumidity;
-        private System.Windows.Forms.TextBox txtPH;
-        private System.Windows.Forms.TextBox txtLight;
         private System.Windows.Forms.TextBox txtSoil;
+
+        // ===== ESP UI =====
+        private System.Windows.Forms.Label lblEspStatus;
+        private System.Windows.Forms.TextBox txtEspLog;
+        private System.Windows.Forms.TextBox txtEspCommand;
+        private System.Windows.Forms.Button btnEspSend;
 
         protected override void Dispose(bool disposing)
         {
@@ -33,117 +41,159 @@
 
         private void InitializeComponent()
         {
-            labelUser = new Label();
-            labelTemperature = new Label();
-            labelHumidity = new Label();
-            labelPH = new Label();
-            labelLight = new Label();
-            labelSoil = new Label();
+            labelUser = new System.Windows.Forms.Label();
+            labelTemperature = new System.Windows.Forms.Label();
+            labelHumidity = new System.Windows.Forms.Label();
+            labelSoil = new System.Windows.Forms.Label();
 
-            txtTemperature = new TextBox();
-            txtHumidity = new TextBox();
-            txtPH = new TextBox();
-            txtLight = new TextBox();
-            txtSoil = new TextBox();
+            txtTemperature = new System.Windows.Forms.TextBox();
+            txtHumidity = new System.Windows.Forms.TextBox();
+            txtSoil = new System.Windows.Forms.TextBox();
 
-            btnTempToggle = new Button();
-            btnHumidityToggle = new Button();
-            btnPHToggle = new Button();
-            btnLightToggle = new Button();
-            btnSoilToggle = new Button();
-            btnLogout = new Button();
+            btnTempToggle = new System.Windows.Forms.Button();
+            btnHumidityToggle = new System.Windows.Forms.Button();
+            btnSoilToggle = new System.Windows.Forms.Button();
+            btnLogout = new System.Windows.Forms.Button();
+
+            lblFanStatus = new System.Windows.Forms.Label();
+            lblHeaterStatus = new System.Windows.Forms.Label();
+            lblPumpStatus = new System.Windows.Forms.Label();
+
+            lblEspStatus = new System.Windows.Forms.Label();
+            txtEspLog = new System.Windows.Forms.TextBox();
+            txtEspCommand = new System.Windows.Forms.TextBox();
+            btnEspSend = new System.Windows.Forms.Button();
 
             SuspendLayout();
 
-            ClientSize = new Size(900, 500);
+            ClientSize = new System.Drawing.Size(900, 650);
 
+            // ===== User label =====
             labelUser.AutoSize = true;
-            labelUser.Font = new Font("Segoe UI", 16F);
-            labelUser.Location = new Point(40, 30);
+            labelUser.Font = new System.Drawing.Font("Segoe UI", 16F);
+            labelUser.Location = new System.Drawing.Point(40, 30);
 
-            Font labelFont = new Font("Segoe UI", 14F);
+            System.Drawing.Font labelFont = new System.Drawing.Font("Segoe UI", 14F);
 
+            // ===== Sensor labels =====
             labelTemperature.AutoSize = true;
             labelTemperature.Font = labelFont;
-            labelTemperature.Location = new Point(40, 120);
+            labelTemperature.Location = new System.Drawing.Point(40, 120);
+            labelTemperature.Text = "Temperature:";
 
             labelHumidity.AutoSize = true;
             labelHumidity.Font = labelFont;
-            labelHumidity.Location = new Point(40, 170);
-
-            labelPH.AutoSize = true;
-            labelPH.Font = labelFont;
-            labelPH.Location = new Point(40, 220);
-
-            labelLight.AutoSize = true;
-            labelLight.Font = labelFont;
-            labelLight.Location = new Point(40, 270);
+            labelHumidity.Location = new System.Drawing.Point(40, 170);
+            labelHumidity.Text = "Humidity:";
 
             labelSoil.AutoSize = true;
             labelSoil.Font = labelFont;
-            labelSoil.Location = new Point(40, 320);
+            labelSoil.Location = new System.Drawing.Point(40, 220);
+            labelSoil.Text = "Soil Moisture:";
 
-            txtTemperature.Location = new Point(400, 120);
-            txtTemperature.Size = new Size(180, 35);
-            txtTemperature.Font = new Font("Segoe UI", 14F);
+            // ===== TextBoxes =====
+            txtTemperature.Location = new System.Drawing.Point(400, 120);
+            txtTemperature.Size = new System.Drawing.Size(180, 35);
+            txtTemperature.Font = new System.Drawing.Font("Segoe UI", 14F);
 
-            txtHumidity.Location = new Point(400, 170);
-            txtHumidity.Size = new Size(180, 35);
-            txtHumidity.Font = new Font("Segoe UI", 14F);
+            txtHumidity.Location = new System.Drawing.Point(400, 170);
+            txtHumidity.Size = new System.Drawing.Size(180, 35);
+            txtHumidity.Font = new System.Drawing.Font("Segoe UI", 14F);
 
-            txtPH.Location = new Point(400, 220);
-            txtPH.Size = new Size(180, 35);
-            txtPH.Font = new Font("Segoe UI", 14F);
+            txtSoil.Location = new System.Drawing.Point(400, 220);
+            txtSoil.Size = new System.Drawing.Size(180, 35);
+            txtSoil.Font = new System.Drawing.Font("Segoe UI", 14F);
 
-            txtLight.Location = new Point(400, 270);
-            txtLight.Size = new Size(180, 35);
-            txtLight.Font = new Font("Segoe UI", 14F);
+            // ===== Toggle buttons =====
+            System.Drawing.Size btnSize = new System.Drawing.Size(180, 45);
 
-            txtSoil.Location = new Point(400, 320);
-            txtSoil.Size = new Size(180, 35);
-            txtSoil.Font = new Font("Segoe UI", 14F);
-
-            Size btnSize = new Size(180, 45);
-
-            btnTempToggle.Location = new Point(620, 120);
+            btnTempToggle.Location = new System.Drawing.Point(620, 120);
             btnTempToggle.Size = btnSize;
 
-            btnHumidityToggle.Location = new Point(620, 170);
+            btnHumidityToggle.Location = new System.Drawing.Point(620, 170);
             btnHumidityToggle.Size = btnSize;
 
-            btnPHToggle.Location = new Point(620, 220);
-            btnPHToggle.Size = btnSize;
-
-            btnLightToggle.Location = new Point(620, 270);
-            btnLightToggle.Size = btnSize;
-
-            btnSoilToggle.Location = new Point(620, 320);
+            btnSoilToggle.Location = new System.Drawing.Point(620, 220);
             btnSoilToggle.Size = btnSize;
 
-            btnLogout.Location = new Point(750, 20);
-            btnLogout.Size = new Size(120, 45);
-            btnLogout.Font = new Font("Segoe UI", 12F);
+            // ===== Logout =====
+            btnLogout.Location = new System.Drawing.Point(750, 20);
+            btnLogout.Size = new System.Drawing.Size(120, 45);
+            btnLogout.Font = new System.Drawing.Font("Segoe UI", 12F);
             btnLogout.Text = "Log Out";
 
+            // =====================
+            // ACTUATOR STATUS
+            // =====================
+            System.Drawing.Font statusFont =
+                new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+
+            lblFanStatus.AutoSize = true;
+            lblFanStatus.Font = statusFont;
+            lblFanStatus.Location = new System.Drawing.Point(40, 270);
+            lblFanStatus.Text = "Fan: OFF";
+            lblFanStatus.ForeColor = System.Drawing.Color.Red;
+
+            lblHeaterStatus.AutoSize = true;
+            lblHeaterStatus.Font = statusFont;
+            lblHeaterStatus.Location = new System.Drawing.Point(180, 270);
+            lblHeaterStatus.Text = "Heater: OFF";
+            lblHeaterStatus.ForeColor = System.Drawing.Color.Red;
+
+            lblPumpStatus.AutoSize = true;
+            lblPumpStatus.Font = statusFont;
+            lblPumpStatus.Location = new System.Drawing.Point(340, 270);
+            lblPumpStatus.Text = "Pump: OFF";
+            lblPumpStatus.ForeColor = System.Drawing.Color.Red;
+
+            // =====================
+            // ESP UI
+            // =====================
+            lblEspStatus.AutoSize = true;
+            lblEspStatus.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            lblEspStatus.Location = new System.Drawing.Point(40, 320);
+            lblEspStatus.Text = "ESP: Disconnected";
+
+            txtEspLog.Location = new System.Drawing.Point(40, 350);
+            txtEspLog.Size = new System.Drawing.Size(540, 140);
+            txtEspLog.Multiline = true;
+            txtEspLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            txtEspLog.ReadOnly = true;
+
+            txtEspCommand.Location = new System.Drawing.Point(40, 510);
+            txtEspCommand.Size = new System.Drawing.Size(420, 30);
+
+            btnEspSend.Location = new System.Drawing.Point(470, 508);
+            btnEspSend.Size = new System.Drawing.Size(110, 34);
+            btnEspSend.Text = "Send to ESP";
+            btnEspSend.UseVisualStyleBackColor = true;
+            btnEspSend.Click += new System.EventHandler(this.btnEspSend_Click);
+
+            // =====================
+            // ADD CONTROLS
+            // =====================
             Controls.Add(labelUser);
             Controls.Add(labelTemperature);
             Controls.Add(labelHumidity);
-            Controls.Add(labelPH);
-            Controls.Add(labelLight);
             Controls.Add(labelSoil);
 
             Controls.Add(txtTemperature);
             Controls.Add(txtHumidity);
-            Controls.Add(txtPH);
-            Controls.Add(txtLight);
             Controls.Add(txtSoil);
 
             Controls.Add(btnTempToggle);
             Controls.Add(btnHumidityToggle);
-            Controls.Add(btnPHToggle);
-            Controls.Add(btnLightToggle);
             Controls.Add(btnSoilToggle);
             Controls.Add(btnLogout);
+
+            Controls.Add(lblFanStatus);
+            Controls.Add(lblHeaterStatus);
+            Controls.Add(lblPumpStatus);
+
+            Controls.Add(lblEspStatus);
+            Controls.Add(txtEspLog);
+            Controls.Add(txtEspCommand);
+            Controls.Add(btnEspSend);
 
             Name = "MainPage";
             Text = "Main Page";

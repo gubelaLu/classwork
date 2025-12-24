@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -16,6 +16,11 @@
     <Content Include="info.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RJCP.SerialPortStream" Version="3.0.4" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.1" />
   </ItemGroup>
 
 </Project>
