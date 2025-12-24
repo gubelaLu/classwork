@@ -1,0 +1,16 @@
+{
+  "Heater": {
+    "OnBelow": 15,
+    "OffAbove": 30
+  },
+  "Fan": {
+    "OnAboveTemp": 28,
+    "OffBelowTemp": 25,
+    "OnAboveHumidity": 75,
+    "OffBelowHumidity": 65
+  },
+  "Pump": {
+    "OnBelowSoil": 30,
+    "OffAboveSoil": 45
+  }
+}

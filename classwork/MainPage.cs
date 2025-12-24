@@ -1,332 +1,420 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
-using RJCP.IO.Ports;
-using System.IO.Ports;
 
 namespace classwork
 {
     public partial class MainPage : Form
     {
+        private string username;
         private string role;
 
-        // ================= TIMERS =================
+        // ================= TIMER =================
         private System.Windows.Forms.Timer updateTimer;
-        private System.Windows.Forms.Timer espScanTimer;
 
-        // ================= ESP =================
-        private SerialPortStream espPort;
+        // ================= RULES FILE =================
+        private const string RulesFilePath =
+            @"C:\Users\Administrator\Source\Repos\classworkL\classwork\controlRules.json";
 
-        // ================= ACTUATORS =================
-        private class Actuator
-        {
-            public bool IsOn { get; set; }
-        }
-
-        private Actuator Fan = new();
-        private Actuator Heater = new();
-        private Actuator Pump = new();
+        private ControlRules rules;
 
         // ================= SENSORS =================
         private class SensorInfo
         {
             public bool IsOn { get; set; }
-            public TimeSpan TotalOnTime { get; set; }
             public DateTime? StartTime { get; set; }
+            public TimeSpan TotalOnTime { get; set; }
         }
 
-        private class AlertEntry
+        private readonly SensorInfo TemperatureSensor = new();
+        private readonly SensorInfo HumiditySensor = new();
+        private readonly SensorInfo SoilSensor = new();
+
+        // ================= ACTUATORS =================
+        private class Actuator
         {
-            public string Sensor { get; set; }
-            public string Value { get; set; }
-            public string Limit { get; set; }
-            public string Time { get; set; }
+            public bool IsOn { get; set; }
+            public DateTime? StartTime { get; set; }
+            public TimeSpan TotalOnTime { get; set; }
         }
 
-        private Dictionary<string, (double Min, double Max)> limits = new()
-        {
-            { "Temperature", (0, 50) },
-            { "Humidity", (0, 100) },
-            { "Soil", (0, 100) }
-        };
+        private readonly Actuator Fan = new();
+        private readonly Actuator Heater = new();
+        private readonly Actuator Pump = new();
 
-        private static Dictionary<string, SensorInfo> sensors = new()
+        // ================= RULE MODELS (match your JSON) =================
+        private class ControlRules
         {
-            { "Temperature", new SensorInfo { IsOn = true, StartTime = DateTime.Now } },
-            { "Humidity", new SensorInfo { IsOn = true, StartTime = DateTime.Now } },
-            { "Soil", new SensorInfo { IsOn = true, StartTime = DateTime.Now } }
-        };
+            public HeaterRules Heater { get; set; } = new();
+            public FanRules Fan { get; set; } = new();
+            public PumpRules Pump { get; set; } = new();
+        }
 
-        // ================= CONSTRUCTOR =================
-        public MainPage(string username, string role)
+        private class HeaterRules
+        {
+            public double OnBelow { get; set; }
+            public double OffAbove { get; set; }
+        }
+
+        private class FanRules
+        {
+            public double OnAboveTemp { get; set; }
+            public double OffBelowTemp { get; set; }
+            public double OnAboveHumidity { get; set; }
+            public double OffBelowHumidity { get; set; }
+        }
+
+        private class PumpRules
+        {
+            public double OnBelowSoil { get; set; }
+            public double OffAboveSoil { get; set; }
+        }
+
+        // ================= CONSTRUCTORS =================
+        public MainPage()
         {
             InitializeComponent();
+            InitializeLogic();
+        }
+
+        public MainPage(string username, string role)
+        {
+            this.username = username;
             this.role = role;
 
-            labelUser.Text = $"Logged in as: {username}";
-            this.FormClosed += (_, __) => Application.Exit();
+            InitializeComponent();
+            InitializeLogic();
+        }
 
-            btnLogout.Click += BtnLogout_Click;
+        // ================= INIT =================
+        private void InitializeLogic()
+        {
+            labelUser.Text = !string.IsNullOrEmpty(username)
+                ? $"User: {username} ({role})"
+                : "User: Unknown";
 
-            bool isAdmin = role.ToLower() == "admin";
-            txtTemperature.ReadOnly = !isAdmin;
-            txtHumidity.ReadOnly = !isAdmin;
-            txtSoil.ReadOnly = !isAdmin;
+            // Load rules from JSON (this is what you asked for)
+            rules = LoadRulesFromJson();
 
-            btnTempToggle.Click += (_, __) => ToggleSensor("Temperature");
-            btnHumidityToggle.Click += (_, __) => ToggleSensor("Humidity");
-            btnSoilToggle.Click += (_, __) => ToggleSensor("Soil");
+            // Sensor toggles
+            btnTempToggle.Click += (s, e) => ToggleSensor(TemperatureSensor);
+            btnHumidityToggle.Click += (s, e) => ToggleSensor(HumiditySensor);
+            btnSoilToggle.Click += (s, e) => ToggleSensor(SoilSensor);
 
-            updateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
-            updateTimer.Tick += UpdateTimer_Tick;
+            // Logout wiring (Designer does not wire it)
+            btnLogout.Click += btnLogout_Click;
+
+            // Sensors ON from start (as you requested previously)
+            TurnSensorOnAtStartup(TemperatureSensor);
+            TurnSensorOnAtStartup(HumiditySensor);
+            TurnSensorOnAtStartup(SoilSensor);
+
+            updateTimer = new System.Windows.Forms.Timer();
+            updateTimer.Interval = 1000;
+            updateTimer.Tick += UpdateUi;
             updateTimer.Start();
 
-            InitEspConnection();
-            UpdateAllToggleButtons();
-            UpdateActuatorStatus();
-        }
-        private void BtnLogout_Click(object sender, EventArgs e)
-        {
-            // Stop timers cleanly
-            updateTimer?.Stop();
-            espScanTimer?.Stop();
+            // Initial UI render
+            UpdateSensorUI(TemperatureSensor, btnTempToggle, "Temperature", txtTemperature);
+            UpdateSensorUI(HumiditySensor, btnHumidityToggle, "Humidity", txtHumidity);
+            UpdateSensorUI(SoilSensor, btnSoilToggle, "Soil", txtSoil);
 
-            // Optional: close ESP connection
+            UpdateActuatorUI(Fan, lblFanStatus, lblFanTime, "Fan");
+            UpdateActuatorUI(Heater, lblHeaterStatus, lblHeaterTime, "Heater");
+            UpdateActuatorUI(Pump, lblPumpStatus, lblPumpTime, "Pump");
+        }
+
+        private ControlRules LoadRulesFromJson()
+        {
+            // Defaults used only if JSON missing/unreadable
+            var fallback = new ControlRules
+            {
+                Heater = new HeaterRules { OnBelow = 15, OffAbove = 30 },
+                Fan = new FanRules
+                {
+                    OnAboveTemp = 28,
+                    OffBelowTemp = 25,
+                    OnAboveHumidity = 75,
+                    OffBelowHumidity = 65
+                },
+                Pump = new PumpRules { OnBelowSoil = 30, OffAboveSoil = 45 }
+            };
+
             try
             {
-                espPort?.Close();
+                string path = RulesFilePath;
+
+                // Optional convenience: if absolute path missing, try local file
+                if (!File.Exists(path))
+                {
+                    var local = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "controlRules.json");
+                    if (File.Exists(local))
+                        path = local;
+                }
+
+                if (!File.Exists(path))
+                {
+                    txtEspLog?.AppendText($"[Rules] File not found. Using defaults. Expected: {RulesFilePath}{Environment.NewLine}");
+                    return fallback;
+                }
+
+                var json = File.ReadAllText(path);
+                var loaded = JsonSerializer.Deserialize<ControlRules>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (loaded == null)
+                {
+                    txtEspLog?.AppendText($"[Rules] Failed to parse JSON. Using defaults.{Environment.NewLine}");
+                    return fallback;
+                }
+
+                txtEspLog?.AppendText($"[Rules] Loaded from: {path}{Environment.NewLine}");
+                return loaded;
             }
-            catch { }
-
-            // Go back to login form
-            var loginForm = new Form1();
-            loginForm.Show();
-
-            this.Hide();
-        }
-
-
-        // ================= TIMER =================
-        private void UpdateTimer_Tick(object sender, EventArgs e)
-        {
-            UpdateSensorLabel(labelTemperature, txtTemperature, "Temperature");
-            UpdateSensorLabel(labelHumidity, txtHumidity, "Humidity");
-            UpdateSensorLabel(labelSoil, txtSoil, "Soil");
-
-            // 🔥 SYSTEM-LEVEL DECISION (ONCE PER CYCLE)
-            EvaluateSystemLogic();
-        }
-
-        // ================= SENSOR UI =================
-        private void ToggleSensor(string sensor)
-        {
-            var info = sensors[sensor];
-
-            if (info.IsOn)
+            catch (Exception ex)
             {
-                info.TotalOnTime += DateTime.Now - info.StartTime!.Value;
-                info.StartTime = null;
-                info.IsOn = false;
+                txtEspLog?.AppendText($"[Rules] Error loading JSON. Using defaults. {ex.Message}{Environment.NewLine}");
+                return fallback;
+            }
+        }
+
+        private static void TurnSensorOnAtStartup(SensorInfo sensor)
+        {
+            sensor.IsOn = true;
+            sensor.StartTime = DateTime.Now;
+        }
+
+        // ================= SENSOR LOGIC =================
+        private void ToggleSensor(SensorInfo sensor)
+        {
+            if (!sensor.IsOn)
+            {
+                sensor.IsOn = true;
+                sensor.StartTime = DateTime.Now;
             }
             else
             {
-                info.StartTime = DateTime.Now;
-                info.IsOn = true;
-            }
+                sensor.IsOn = false;
+                if (sensor.StartTime.HasValue)
+                    sensor.TotalOnTime += DateTime.Now - sensor.StartTime.Value;
 
-            UpdateAllToggleButtons();
-        }
-
-        private void UpdateSensorLabel(Label lbl, TextBox txt, string sensor)
-        {
-            var info = sensors[sensor];
-
-            TimeSpan total = info.TotalOnTime;
-            if (info.IsOn && info.StartTime.HasValue)
-                total += DateTime.Now - info.StartTime.Value;
-
-            string formatted = total.ToString(@"hh\:mm\:ss");
-
-            lbl.Text = info.IsOn
-                ? $"{sensor}: (ON for {formatted})"
-                : $"{sensor}: (OFF, Total {formatted})";
-
-            if (info.IsOn && double.TryParse(txt.Text.Trim(), out double value))
-            {
-                var (min, max) = limits[sensor];
-                if (value < min) SaveAlert(sensor, value, $"Min {min}");
-                if (value > max) SaveAlert(sensor, value, $"Max {max}");
+                sensor.StartTime = null;
             }
         }
 
-        private void UpdateAllToggleButtons()
+        private void UpdateUi(object sender, EventArgs e)
         {
-            UpdateToggleButton(btnTempToggle, "Temperature");
-            UpdateToggleButton(btnHumidityToggle, "Humidity");
-            UpdateToggleButton(btnSoilToggle, "Soil");
+            UpdateSensorUI(TemperatureSensor, btnTempToggle, "Temperature", txtTemperature);
+            UpdateSensorUI(HumiditySensor, btnHumidityToggle, "Humidity", txtHumidity);
+            UpdateSensorUI(SoilSensor, btnSoilToggle, "Soil", txtSoil);
+
+            // Actuator automation from JSON rules
+            ApplyAutomationRulesFromJson();
+
+            UpdateActuatorUI(Fan, lblFanStatus, lblFanTime, "Fan");
+            UpdateActuatorUI(Heater, lblHeaterStatus, lblHeaterTime, "Heater");
+            UpdateActuatorUI(Pump, lblPumpStatus, lblPumpTime, "Pump");
         }
 
-        private void UpdateToggleButton(Button btn, string sensor)
+        private void UpdateSensorUI(SensorInfo sensor, Button button, string name, TextBox valueBox)
         {
-            btn.Text = sensors[sensor].IsOn ? $"{sensor} ON" : $"{sensor} OFF";
-            btn.BackColor = sensors[sensor].IsOn ? Color.LimeGreen : Color.Red;
-            btn.Enabled = role.ToLower() == "admin";
-        }
+            var elapsed = sensor.TotalOnTime;
 
-        // ================= SYSTEM LOGIC =================
-        private bool TryGetSensorValue(string sensor, TextBox txt, out double value)
-        {
-            value = 0;
-            return sensors[sensor].IsOn &&
-                   double.TryParse(txt.Text.Trim(), out value);
-        }
+            if (sensor.IsOn && sensor.StartTime.HasValue)
+                elapsed += DateTime.Now - sensor.StartTime.Value;
 
-        private void EvaluateSystemLogic()
-        {
-            bool fanNeeded = false;
-
-            // Temperature
-            if (TryGetSensorValue("Temperature", txtTemperature, out double temp))
+            if (sensor.IsOn)
             {
-                if (temp > 28) fanNeeded = true;
-
-                if (temp < 10) TurnHeater(true);
-                else if (temp > 15) TurnHeater(false);
+                button.Text = $"{name}: ON ({elapsed:hh\\:mm\\:ss})";
+                button.ForeColor = Color.Green;
+                valueBox.Enabled = true;
             }
-
-            // Humidity
-            if (TryGetSensorValue("Humidity", txtHumidity, out double hum))
+            else
             {
-                if (hum > 70) fanNeeded = true;
+                button.Text = $"{name}: OFF ({elapsed:hh\\:mm\\:ss})";
+                button.ForeColor = Color.Red;
+                valueBox.Enabled = false;
             }
+        }
 
-            // Soil
-            if (TryGetSensorValue("Soil", txtSoil, out double soil))
+        // ================= AUTOMATION (JSON RULES + HYSTERESIS) =================
+        private void ApplyAutomationRulesFromJson()
+        {
+            // Only use a value if that sensor is ON and numeric.
+            double? temp = TemperatureSensor.IsOn ? TryParseDouble(txtTemperature.Text) : null;
+            double? hum = HumiditySensor.IsOn ? TryParseDouble(txtHumidity.Text) : null;
+            double? soil = SoilSensor.IsOn ? TryParseDouble(txtSoil.Text) : null;
+
+            // HEATER (depends on temperature)
+            bool heaterDesired = false;
+            if (temp.HasValue)
             {
-                if (soil < 30) TurnPump(true);
-                else if (soil > 50) TurnPump(false);
-            }
-
-            // Fan decided ONCE
-            TurnFan(fanNeeded);
-        }
-
-        // ================= ACTUATORS =================
-        private void TurnFan(bool on)
-        {
-            if (Fan.IsOn == on) return;
-            Fan.IsOn = on;
-            SendEspCommand(on ? "FAN_ON" : "FAN_OFF");
-            UpdateActuatorStatus();
-        }
-
-        private void TurnHeater(bool on)
-        {
-            if (Heater.IsOn == on) return;
-            Heater.IsOn = on;
-            SendEspCommand(on ? "HEATER_ON" : "HEATER_OFF");
-            UpdateActuatorStatus();
-        }
-
-        private void TurnPump(bool on)
-        {
-            if (Pump.IsOn == on) return;
-            Pump.IsOn = on;
-            SendEspCommand(on ? "PUMP_ON" : "PUMP_OFF");
-            UpdateActuatorStatus();
-        }
-
-        private void UpdateActuatorStatus()
-        {
-            lblFanStatus.Text = Fan.IsOn ? "Fan: ON" : "Fan: OFF";
-            lblFanStatus.ForeColor = Fan.IsOn ? Color.LimeGreen : Color.Red;
-
-            lblHeaterStatus.Text = Heater.IsOn ? "Heater: ON" : "Heater: OFF";
-            lblHeaterStatus.ForeColor = Heater.IsOn ? Color.LimeGreen : Color.Red;
-
-            lblPumpStatus.Text = Pump.IsOn ? "Pump: ON" : "Pump: OFF";
-            lblPumpStatus.ForeColor = Pump.IsOn ? Color.LimeGreen : Color.Red;
-        }
-
-        // ================= ALERT LOGGING =================
-        private void SaveAlert(string sensor, double value, string limit)
-        {
-            string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "alerts");
-            Directory.CreateDirectory(dir);
-
-            string file = Path.Combine(dir, $"{sensor}.json");
-            List<AlertEntry> logs = File.Exists(file)
-                ? JsonSerializer.Deserialize<List<AlertEntry>>(File.ReadAllText(file)) ?? new()
-                : new();
-
-            logs.Add(new AlertEntry
-            {
-                Sensor = sensor,
-                Value = value.ToString(),
-                Limit = limit,
-                Time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-            });
-
-            File.WriteAllText(
-                file,
-                JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true })
-            );
-        }
-
-        // ================= ESP =================
-        private void InitEspConnection()
-        {
-            espScanTimer = new System.Windows.Forms.Timer { Interval = 5000 };
-            espScanTimer.Tick += (_, __) => TryConnectToEsp();
-            espScanTimer.Start();
-
-            TryConnectToEsp();
-        }
-
-        private void TryConnectToEsp()
-        {
-            if (espPort != null && espPort.IsOpen) return;
-
-            foreach (string port in SerialPort.GetPortNames())
-            {
-                try
+                if (!Heater.IsOn)
                 {
-                    espPort = new SerialPortStream(port, 115200);
-                    espPort.Open();
-                    lblEspStatus.Text = $"ESP: Connected ({port})";
-                    return;
+                    heaterDesired = temp.Value <= rules.Heater.OnBelow;
                 }
-                catch { }
+                else
+                {
+                    heaterDesired = temp.Value < rules.Heater.OffAbove; // stays ON until reaching OffAbove
+                }
+            }
+            // if temp missing -> heaterDesired stays false
+
+            // PUMP (depends on soil)
+            bool pumpDesired = false;
+            if (soil.HasValue)
+            {
+                if (!Pump.IsOn)
+                {
+                    pumpDesired = soil.Value <= rules.Pump.OnBelowSoil;
+                }
+                else
+                {
+                    pumpDesired = soil.Value < rules.Pump.OffAboveSoil; // stays ON until reaching OffAboveSoil
+                }
             }
 
-            lblEspStatus.Text = "ESP: Disconnected";
-        }
+            // FAN (depends on temp and/or humidity)
+            bool fanDesired = false;
 
-        private void SendEspCommand(string cmd)
-        {
-            if (espPort == null || !espPort.IsOpen) return;
-            espPort.WriteLine(cmd);
-            AppendEspLog($"> {cmd}");
-        }
-
-        private void AppendEspLog(string text)
-        {
-            if (txtEspLog.InvokeRequired)
+            // If both missing, fan stays OFF
+            if (temp.HasValue || hum.HasValue)
             {
-                txtEspLog.Invoke(new Action<string>(AppendEspLog), text);
+                if (!Fan.IsOn)
+                {
+                    // Turn ON if either exceeds its "OnAbove" threshold
+                    fanDesired =
+                        (temp.HasValue && temp.Value >= rules.Fan.OnAboveTemp) ||
+                        (hum.HasValue && hum.Value >= rules.Fan.OnAboveHumidity);
+                }
+                else
+                {
+                    // Keep ON if either is still above its "OffBelow" threshold
+                    bool keepByTemp = temp.HasValue && temp.Value > rules.Fan.OffBelowTemp;
+                    bool keepByHum = hum.HasValue && hum.Value > rules.Fan.OffBelowHumidity;
+
+                    fanDesired = keepByTemp || keepByHum;
+                }
+            }
+
+            SetActuatorState(Heater, heaterDesired);
+            SetActuatorState(Pump, pumpDesired);
+            SetActuatorState(Fan, fanDesired);
+        }
+
+        private static double? TryParseDouble(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            text = text.Trim().Replace(',', '.');
+
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+                return v;
+
+            return null;
+        }
+
+        private void SetActuatorState(Actuator actuator, bool on)
+        {
+            if (on && !actuator.IsOn)
+            {
+                actuator.IsOn = true;
+                actuator.StartTime = DateTime.Now;
                 return;
             }
 
-            txtEspLog.AppendText(text + Environment.NewLine);
+            if (!on && actuator.IsOn)
+            {
+                actuator.IsOn = false;
+                if (actuator.StartTime.HasValue)
+                    actuator.TotalOnTime += DateTime.Now - actuator.StartTime.Value;
+                actuator.StartTime = null;
+            }
         }
 
+        private void UpdateActuatorUI(Actuator actuator, Label statusLabel, Label timeLabel, string name)
+        {
+            var elapsed = actuator.TotalOnTime;
+
+            if (actuator.IsOn && actuator.StartTime.HasValue)
+                elapsed += DateTime.Now - actuator.StartTime.Value;
+
+            statusLabel.Text = actuator.IsOn ? $"{name}: ON" : $"{name}: OFF";
+            statusLabel.ForeColor = actuator.IsOn ? Color.Green : Color.Red;
+
+            timeLabel.Text = elapsed.ToString(@"hh\:mm\:ss");
+        }
+
+        // ================= HELP (if your Designer has the ? button wired) =================
+        private void btnHelp_Click(object sender, EventArgs e)
+        {
+            // Uses current loaded rules
+            string msg =
+                $"Rules source:\n{RulesFilePath}\n\n" +
+                "Heater:\n" +
+                $"  ON if Temp <= {rules.Heater.OnBelow}\n" +
+                $"  OFF if Temp >= {rules.Heater.OffAbove}\n\n" +
+                "Fan:\n" +
+                $"  ON if Temp >= {rules.Fan.OnAboveTemp} OR Humidity >= {rules.Fan.OnAboveHumidity}\n" +
+                $"  OFF only when Temp <= {rules.Fan.OffBelowTemp} AND Humidity <= {rules.Fan.OffBelowHumidity}\n\n" +
+                "Pump:\n" +
+                $"  ON if Soil <= {rules.Pump.OnBelowSoil}\n" +
+                $"  OFF if Soil >= {rules.Pump.OffAboveSoil}\n\n" +
+                "Notes:\n" +
+                "• A rule is applied only if that sensor is ON and its value is numeric.\n" +
+                "• Hysteresis is used to avoid constant ON/OFF toggling.";
+
+            MessageBox.Show(msg, "Help: Control Rules", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // ================= LOGOUT =================
+        private void btnLogout_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                foreach (Form f in Application.OpenForms)
+                {
+                    if (f.GetType().Name == "LoginPage")
+                    {
+                        f.Show();
+                        f.BringToFront();
+                        Close();
+                        return;
+                    }
+                }
+
+                var loginType = Type.GetType("classwork.LoginPage");
+                if (loginType != null && typeof(Form).IsAssignableFrom(loginType))
+                {
+                    var login = (Form)Activator.CreateInstance(loginType);
+                    login.Show();
+                    Close();
+                    return;
+                }
+            }
+            catch
+            {
+                // fallback below
+            }
+
+            Close();
+        }
+
+        // ===== REQUIRED because Designer wires this event =====
         private void btnEspSend_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(txtEspCommand.Text))
-                SendEspCommand(txtEspCommand.Text.Trim());
+            var cmd = txtEspCommand.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(cmd))
+                return;
+
+            txtEspLog.AppendText($"> {cmd}{Environment.NewLine}");
+            txtEspCommand.Clear();
         }
     }
 }

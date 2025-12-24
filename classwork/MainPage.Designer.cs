@@ -9,6 +9,11 @@
         private System.Windows.Forms.Label lblHeaterStatus;
         private System.Windows.Forms.Label lblPumpStatus;
 
+        // ===== Actuator time labels =====
+        private System.Windows.Forms.Label lblFanTime;
+        private System.Windows.Forms.Label lblHeaterTime;
+        private System.Windows.Forms.Label lblPumpTime;
+
         // ===== User & sensor labels =====
         private System.Windows.Forms.Label labelUser;
         private System.Windows.Forms.Label labelTemperature;
@@ -20,6 +25,9 @@
         private System.Windows.Forms.Button btnHumidityToggle;
         private System.Windows.Forms.Button btnSoilToggle;
         private System.Windows.Forms.Button btnLogout;
+
+        // ===== Help button (NEW) =====
+        private System.Windows.Forms.Button btnHelp;
 
         // ===== TextBoxes =====
         private System.Windows.Forms.TextBox txtTemperature;
@@ -55,9 +63,16 @@
             btnSoilToggle = new System.Windows.Forms.Button();
             btnLogout = new System.Windows.Forms.Button();
 
+            // NEW
+            btnHelp = new System.Windows.Forms.Button();
+
             lblFanStatus = new System.Windows.Forms.Label();
             lblHeaterStatus = new System.Windows.Forms.Label();
             lblPumpStatus = new System.Windows.Forms.Label();
+
+            lblFanTime = new System.Windows.Forms.Label();
+            lblHeaterTime = new System.Windows.Forms.Label();
+            lblPumpTime = new System.Windows.Forms.Label();
 
             lblEspStatus = new System.Windows.Forms.Label();
             txtEspLog = new System.Windows.Forms.TextBox();
@@ -122,11 +137,22 @@
             btnLogout.Font = new System.Drawing.Font("Segoe UI", 12F);
             btnLogout.Text = "Log Out";
 
+            // ===== Help button (NEW) =====
+            btnHelp.Location = new System.Drawing.Point(700, 20);
+            btnHelp.Size = new System.Drawing.Size(40, 45);
+            btnHelp.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            btnHelp.Text = "?";
+            btnHelp.UseVisualStyleBackColor = true;
+            btnHelp.Click += new System.EventHandler(this.btnHelp_Click);
+
             // =====================
             // ACTUATOR STATUS
             // =====================
             System.Drawing.Font statusFont =
                 new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+
+            System.Drawing.Font timeFont =
+                new System.Drawing.Font("Segoe UI", 10F);
 
             lblFanStatus.AutoSize = true;
             lblFanStatus.Font = statusFont;
@@ -134,17 +160,32 @@
             lblFanStatus.Text = "Fan: OFF";
             lblFanStatus.ForeColor = System.Drawing.Color.Red;
 
+            lblFanTime.AutoSize = true;
+            lblFanTime.Font = timeFont;
+            lblFanTime.Location = new System.Drawing.Point(40, 295);
+            lblFanTime.Text = "00:00:00";
+
             lblHeaterStatus.AutoSize = true;
             lblHeaterStatus.Font = statusFont;
             lblHeaterStatus.Location = new System.Drawing.Point(180, 270);
             lblHeaterStatus.Text = "Heater: OFF";
             lblHeaterStatus.ForeColor = System.Drawing.Color.Red;
 
+            lblHeaterTime.AutoSize = true;
+            lblHeaterTime.Font = timeFont;
+            lblHeaterTime.Location = new System.Drawing.Point(180, 295);
+            lblHeaterTime.Text = "00:00:00";
+
             lblPumpStatus.AutoSize = true;
             lblPumpStatus.Font = statusFont;
             lblPumpStatus.Location = new System.Drawing.Point(340, 270);
             lblPumpStatus.Text = "Pump: OFF";
             lblPumpStatus.ForeColor = System.Drawing.Color.Red;
+
+            lblPumpTime.AutoSize = true;
+            lblPumpTime.Font = timeFont;
+            lblPumpTime.Location = new System.Drawing.Point(340, 295);
+            lblPumpTime.Text = "00:00:00";
 
             // =====================
             // ESP UI
@@ -184,11 +225,16 @@
             Controls.Add(btnTempToggle);
             Controls.Add(btnHumidityToggle);
             Controls.Add(btnSoilToggle);
+
+            Controls.Add(btnHelp);   // NEW
             Controls.Add(btnLogout);
 
             Controls.Add(lblFanStatus);
+            Controls.Add(lblFanTime);
             Controls.Add(lblHeaterStatus);
+            Controls.Add(lblHeaterTime);
             Controls.Add(lblPumpStatus);
+            Controls.Add(lblPumpTime);
 
             Controls.Add(lblEspStatus);
             Controls.Add(txtEspLog);
