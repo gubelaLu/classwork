@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.IO.Ports;
+using System.Text.Json;
 
 namespace classwork
 {
@@ -380,21 +381,27 @@ namespace classwork
         }
         private void InitializeEspConnection()
         {
-            try
+            foreach (string portName in SerialPort.GetPortNames())
             {
-                espSerial = new System.IO.Ports.SerialPort("COM3", 115200);
-                espSerial.Open();
+                try
+                {
+                    espSerial = new SerialPort(portName, 115200);
+                    espSerial.Open();
 
-                lblEspStatus.Text = "ESP: Connected";
-                lblEspStatus.ForeColor = System.Drawing.Color.Green;
+                    lblEspStatus.Text = $"ESP: Connected ({portName})";
+                    lblEspStatus.ForeColor = Color.Green;
+                    return;
+                }
+                catch
+                {
+                    // Try next port
+                }
             }
-            catch (Exception ex)
-            {
-                lblEspStatus.Text = "ESP: Disconnected";
-                lblEspStatus.ForeColor = System.Drawing.Color.Red;
-                txtEspLog.AppendText($"[ESP] {ex.Message}{Environment.NewLine}");
-            }
+
+            lblEspStatus.Text = "ESP: Disconnected";
+            lblEspStatus.ForeColor = Color.Red;
         }
+
         private ControlRules LoadRulesFromJson()
         {
             var fallback = new ControlRules
