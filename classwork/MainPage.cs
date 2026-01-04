@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.IO.Ports;
 using System.Text.Json;
 using System.Windows.Forms;
 
@@ -9,17 +10,29 @@ namespace classwork
 {
     public partial class MainPage : Form
     {
+        private const string SettingsFilePath =
+    @"C:\Users\Administrator\Source\Repos\classworkL\classwork\appSettings.json";
+
+        private AppSettings appSettings = new();
+
         private string username;
         private string role;
 
-        // ================= TIMER =================
         private System.Windows.Forms.Timer updateTimer;
+        private SerialPort espSerial;
 
-        // ================= RULES FILE =================
         private const string RulesFilePath =
             @"C:\Users\Administrator\Source\Repos\classworkL\classwork\controlRules.json";
 
         private ControlRules rules;
+
+        // ================= SPRINKLER (MODIFIABLE) =================
+        private TimeSpan SprinklerStartTime = new TimeSpan(12, 0, 0);
+        private TimeSpan SprinklerDuration = TimeSpan.FromMinutes(10);
+
+        private bool sprinklerActive;
+        private DateTime? sprinklerEndTime;
+        private DateTime lastSprinklerRunDate = DateTime.MinValue;
 
         // ================= SENSORS =================
         private class SensorInfo
@@ -45,7 +58,7 @@ namespace classwork
         private readonly Actuator Heater = new();
         private readonly Actuator Pump = new();
 
-        // ================= RULE MODELS (match your JSON) =================
+        // ================= RULE CLASSES =================
         private class ControlRules
         {
             public HeaterRules Heater { get; set; } = new();
@@ -73,348 +86,504 @@ namespace classwork
             public double OffAboveSoil { get; set; }
         }
 
-        // ================= CONSTRUCTORS =================
         public MainPage()
         {
             InitializeComponent();
             InitializeLogic();
+            this.Shown += (_, __) => UpdateAllUI();
         }
 
         public MainPage(string username, string role)
         {
             this.username = username;
             this.role = role;
-
             InitializeComponent();
             InitializeLogic();
+            this.Shown += (_, __) => UpdateAllUI();
         }
 
-        // ================= INIT =================
         private void InitializeLogic()
         {
             labelUser.Text = !string.IsNullOrEmpty(username)
                 ? $"User: {username} ({role})"
                 : "User: Unknown";
 
-            // Load rules from JSON (this is what you asked for)
             rules = LoadRulesFromJson();
 
-            // Sensor toggles
-            btnTempToggle.Click += (s, e) => ToggleSensor(TemperatureSensor);
-            btnHumidityToggle.Click += (s, e) => ToggleSensor(HumiditySensor);
-            btnSoilToggle.Click += (s, e) => ToggleSensor(SoilSensor);
+            // 1️⃣ Button click wiring
+            btnTempToggle.Click += (_, __) =>
+            {
+                if (!IsAdmin())
+                {
+                    ShowPermissionDenied();
+                    return;
+                }
+                ToggleSensor(TemperatureSensor);
+            };
 
-            // Logout wiring (Designer does not wire it)
+            btnHumidityToggle.Click += (_, __) =>
+            {
+                if (!IsAdmin())
+                {
+                    ShowPermissionDenied();
+                    return;
+                }
+                ToggleSensor(HumiditySensor);
+            };
+
+            btnSoilToggle.Click += (_, __) =>
+            {
+                if (!IsAdmin())
+                {
+                    ShowPermissionDenied();
+                    return;
+                }
+                ToggleSensor(SoilSensor);
+            };
+            LoadAppSettings();
+
             btnLogout.Click += btnLogout_Click;
 
-            // Sensors ON from start (as you requested previously)
+            // 👉 STEP 2 GOES **HERE**
+            ApplyPermissions();
+
+            // 2️⃣ Sensors startup state
             TurnSensorOnAtStartup(TemperatureSensor);
             TurnSensorOnAtStartup(HumiditySensor);
             TurnSensorOnAtStartup(SoilSensor);
 
-            updateTimer = new System.Windows.Forms.Timer();
-            updateTimer.Interval = 1000;
-            updateTimer.Tick += UpdateUi;
+            // 3️⃣ Timer
+            updateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+            updateTimer.Tick += (_, __) => UpdateAllUI();
             updateTimer.Start();
 
-            // Initial UI render
+            // 4️⃣ ESP
+            InitializeEspConnection();
+        }
+
+
+        // ================= UI UPDATE =================
+        private void UpdateAllUI()
+        {
+            UpdateSprinklerFromUI();
+
             UpdateSensorUI(TemperatureSensor, btnTempToggle, "Temperature", txtTemperature);
             UpdateSensorUI(HumiditySensor, btnHumidityToggle, "Humidity", txtHumidity);
             UpdateSensorUI(SoilSensor, btnSoilToggle, "Soil", txtSoil);
 
-            UpdateActuatorUI(Fan, lblFanStatus, lblFanTime, "Fan");
-            UpdateActuatorUI(Heater, lblHeaterStatus, lblHeaterTime, "Heater");
-            UpdateActuatorUI(Pump, lblPumpStatus, lblPumpTime, "Pump");
-        }
-
-        private ControlRules LoadRulesFromJson()
-        {
-            // Defaults used only if JSON missing/unreadable
-            var fallback = new ControlRules
-            {
-                Heater = new HeaterRules { OnBelow = 15, OffAbove = 30 },
-                Fan = new FanRules
-                {
-                    OnAboveTemp = 28,
-                    OffBelowTemp = 25,
-                    OnAboveHumidity = 75,
-                    OffBelowHumidity = 65
-                },
-                Pump = new PumpRules { OnBelowSoil = 30, OffAboveSoil = 45 }
-            };
-
-            try
-            {
-                string path = RulesFilePath;
-
-                // Optional convenience: if absolute path missing, try local file
-                if (!File.Exists(path))
-                {
-                    var local = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "controlRules.json");
-                    if (File.Exists(local))
-                        path = local;
-                }
-
-                if (!File.Exists(path))
-                {
-                    txtEspLog?.AppendText($"[Rules] File not found. Using defaults. Expected: {RulesFilePath}{Environment.NewLine}");
-                    return fallback;
-                }
-
-                var json = File.ReadAllText(path);
-                var loaded = JsonSerializer.Deserialize<ControlRules>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (loaded == null)
-                {
-                    txtEspLog?.AppendText($"[Rules] Failed to parse JSON. Using defaults.{Environment.NewLine}");
-                    return fallback;
-                }
-
-                txtEspLog?.AppendText($"[Rules] Loaded from: {path}{Environment.NewLine}");
-                return loaded;
-            }
-            catch (Exception ex)
-            {
-                txtEspLog?.AppendText($"[Rules] Error loading JSON. Using defaults. {ex.Message}{Environment.NewLine}");
-                return fallback;
-            }
-        }
-
-        private static void TurnSensorOnAtStartup(SensorInfo sensor)
-        {
-            sensor.IsOn = true;
-            sensor.StartTime = DateTime.Now;
-        }
-
-        // ================= SENSOR LOGIC =================
-        private void ToggleSensor(SensorInfo sensor)
-        {
-            if (!sensor.IsOn)
-            {
-                sensor.IsOn = true;
-                sensor.StartTime = DateTime.Now;
-            }
-            else
-            {
-                sensor.IsOn = false;
-                if (sensor.StartTime.HasValue)
-                    sensor.TotalOnTime += DateTime.Now - sensor.StartTime.Value;
-
-                sensor.StartTime = null;
-            }
-        }
-
-        private void UpdateUi(object sender, EventArgs e)
-        {
-            UpdateSensorUI(TemperatureSensor, btnTempToggle, "Temperature", txtTemperature);
-            UpdateSensorUI(HumiditySensor, btnHumidityToggle, "Humidity", txtHumidity);
-            UpdateSensorUI(SoilSensor, btnSoilToggle, "Soil", txtSoil);
-
-            // Actuator automation from JSON rules
-            ApplyAutomationRulesFromJson();
+            ApplyAutomationRules();
 
             UpdateActuatorUI(Fan, lblFanStatus, lblFanTime, "Fan");
             UpdateActuatorUI(Heater, lblHeaterStatus, lblHeaterTime, "Heater");
             UpdateActuatorUI(Pump, lblPumpStatus, lblPumpTime, "Pump");
+
+            lblSprinklerInfo.Text =
+                $"Sprinkler: {SprinklerStartTime:hh\\:mm} for {SprinklerDuration.TotalMinutes} min";
         }
 
-        private void UpdateSensorUI(SensorInfo sensor, Button button, string name, TextBox valueBox)
+        // ================= SPRINKLER UI PARSING =================
+        private void UpdateSprinklerFromUI()
         {
-            var elapsed = sensor.TotalOnTime;
+            if (TimeSpan.TryParseExact(txtSprinklerTime.Text, @"hh\:mm", null, out var time))
+                SprinklerStartTime = time;
 
-            if (sensor.IsOn && sensor.StartTime.HasValue)
-                elapsed += DateTime.Now - sensor.StartTime.Value;
+            if (int.TryParse(txtSprinklerDuration.Text, out var minutes) && minutes > 0)
+                SprinklerDuration = TimeSpan.FromMinutes(minutes);
+        }
 
-            if (sensor.IsOn)
+        private bool ApplyTimedSprinkler()
+        {
+            var now = DateTime.Now;
+
+            if (sprinklerActive && sprinklerEndTime.HasValue && now >= sprinklerEndTime.Value)
             {
-                button.Text = $"{name}: ON ({elapsed:hh\\:mm\\:ss})";
-                button.ForeColor = Color.Green;
-                valueBox.Enabled = true;
+                sprinklerActive = false;
+                sprinklerEndTime = null;
+            }
+
+            if (!sprinklerActive &&
+                lastSprinklerRunDate.Date != now.Date &&
+                now.TimeOfDay >= SprinklerStartTime &&
+                now.TimeOfDay < SprinklerStartTime.Add(TimeSpan.FromMinutes(1)))
+            {
+                sprinklerActive = true;
+                sprinklerEndTime = now.Add(SprinklerDuration);
+                lastSprinklerRunDate = now.Date;
+            }
+
+            return sprinklerActive;
+        }
+
+        // ================= AUTOMATION =================
+        private void ApplyAutomationRules()
+        {
+            double? temp = TryParseDouble(txtTemperature.Text);
+            double? hum = TryParseDouble(txtHumidity.Text);
+            double? soil = TryParseDouble(txtSoil.Text);
+
+            bool sprinkler = ApplyTimedSprinkler();
+
+            SetActuatorState(Heater,
+                temp.HasValue &&
+                (!Heater.IsOn ? temp <= rules.Heater.OnBelow : temp < rules.Heater.OffAbove));
+
+            SetActuatorState(Fan,
+                !Fan.IsOn
+                    ? (temp >= rules.Fan.OnAboveTemp || hum >= rules.Fan.OnAboveHumidity)
+                    : (temp > rules.Fan.OffBelowTemp || hum > rules.Fan.OffBelowHumidity));
+
+            SetActuatorState(Pump,
+                sprinkler ||
+                (soil.HasValue &&
+                 (!Pump.IsOn ? soil <= rules.Pump.OnBelowSoil : soil < rules.Pump.OffAboveSoil)));
+        }
+
+        // ================= HELP =================
+        private void btnHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(
+                $"Sprinkler:\n" +
+                $"- Start: {SprinklerStartTime:hh\\:mm}\n" +
+                $"- Duration: {SprinklerDuration.TotalMinutes} min\n\n" +
+                "Sensors:\nDHT11 (Temp/Humidity)\nAR0182 (Soil)",
+                "Help",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        // ================= UTILS =================
+        private static double? TryParseDouble(string t)
+        {
+            if (string.IsNullOrWhiteSpace(t)) return null;
+            t = t.Replace(',', '.');
+            return double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : null;
+        }
+
+        private static void TurnSensorOnAtStartup(SensorInfo s)
+        {
+            s.IsOn = true;
+            s.StartTime = DateTime.Now;
+        }
+        private bool IsAdmin()
+        {
+            return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ToggleSensor(SensorInfo s)
+        {
+            if (s.IsOn)
+            {
+                s.IsOn = false;
+                s.TotalOnTime += DateTime.Now - s.StartTime.Value;
+                s.StartTime = null;
             }
             else
             {
-                button.Text = $"{name}: OFF ({elapsed:hh\\:mm\\:ss})";
-                button.ForeColor = Color.Red;
-                valueBox.Enabled = false;
+                s.IsOn = true;
+                s.StartTime = DateTime.Now;
             }
         }
 
-        // ================= AUTOMATION (JSON RULES + HYSTERESIS) =================
-        private void ApplyAutomationRulesFromJson()
+        private void SetActuatorState(Actuator a, bool on)
         {
-            // Only use a value if that sensor is ON and numeric.
-            double? temp = TemperatureSensor.IsOn ? TryParseDouble(txtTemperature.Text) : null;
-            double? hum = HumiditySensor.IsOn ? TryParseDouble(txtHumidity.Text) : null;
-            double? soil = SoilSensor.IsOn ? TryParseDouble(txtSoil.Text) : null;
-
-            // HEATER (depends on temperature)
-            bool heaterDesired = false;
-            if (temp.HasValue)
+            if (on && !a.IsOn)
             {
-                if (!Heater.IsOn)
-                {
-                    heaterDesired = temp.Value <= rules.Heater.OnBelow;
-                }
-                else
-                {
-                    heaterDesired = temp.Value < rules.Heater.OffAbove; // stays ON until reaching OffAbove
-                }
+                a.IsOn = true;
+                a.StartTime = DateTime.Now;
             }
-            // if temp missing -> heaterDesired stays false
-
-            // PUMP (depends on soil)
-            bool pumpDesired = false;
-            if (soil.HasValue)
+            else if (!on && a.IsOn)
             {
-                if (!Pump.IsOn)
-                {
-                    pumpDesired = soil.Value <= rules.Pump.OnBelowSoil;
-                }
-                else
-                {
-                    pumpDesired = soil.Value < rules.Pump.OffAboveSoil; // stays ON until reaching OffAboveSoil
-                }
+                a.IsOn = false;
+                a.TotalOnTime += DateTime.Now - a.StartTime.Value;
+                a.StartTime = null;
             }
-
-            // FAN (depends on temp and/or humidity)
-            bool fanDesired = false;
-
-            // If both missing, fan stays OFF
-            if (temp.HasValue || hum.HasValue)
-            {
-                if (!Fan.IsOn)
-                {
-                    // Turn ON if either exceeds its "OnAbove" threshold
-                    fanDesired =
-                        (temp.HasValue && temp.Value >= rules.Fan.OnAboveTemp) ||
-                        (hum.HasValue && hum.Value >= rules.Fan.OnAboveHumidity);
-                }
-                else
-                {
-                    // Keep ON if either is still above its "OffBelow" threshold
-                    bool keepByTemp = temp.HasValue && temp.Value > rules.Fan.OffBelowTemp;
-                    bool keepByHum = hum.HasValue && hum.Value > rules.Fan.OffBelowHumidity;
-
-                    fanDesired = keepByTemp || keepByHum;
-                }
-            }
-
-            SetActuatorState(Heater, heaterDesired);
-            SetActuatorState(Pump, pumpDesired);
-            SetActuatorState(Fan, fanDesired);
+        }
+        private void ShowPermissionDenied()
+        {
+            MessageBox.Show(
+                "You do not have permission to change sensor states.\n\n" +
+                "Only administrators can enable or disable sensors.",
+                "Permission Denied",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
         }
 
-        private static double? TryParseDouble(string text)
+        private void UpdateSensorUI(SensorInfo s, Button b, string name, TextBox box)
         {
-            if (string.IsNullOrWhiteSpace(text))
-                return null;
+            var elapsed = s.TotalOnTime +
+                (s.IsOn && s.StartTime.HasValue ? DateTime.Now - s.StartTime.Value : TimeSpan.Zero);
 
-            text = text.Trim().Replace(',', '.');
+            var value = string.IsNullOrWhiteSpace(box.Text) ? "N/A" : box.Text;
 
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
-                return v;
-
-            return null;
+            b.Text = $"{name}: {(s.IsOn ? "ON" : "OFF")} | {value} | {elapsed:hh\\:mm\\:ss}";
+            b.ForeColor = s.IsOn ? Color.Green : Color.Red;
+            box.Enabled = s.IsOn;
         }
 
-        private void SetActuatorState(Actuator actuator, bool on)
+        private void UpdateActuatorUI(Actuator a, Label s, Label t, string name)
         {
-            if (on && !actuator.IsOn)
+            var elapsed = a.TotalOnTime +
+                (a.IsOn && a.StartTime.HasValue ? DateTime.Now - a.StartTime.Value : TimeSpan.Zero);
+
+            s.Text = $"{name}: {(a.IsOn ? "ON" : "OFF")}";
+            s.ForeColor = a.IsOn ? Color.Green : Color.Red;
+            t.Text = elapsed.ToString(@"hh\:mm\:ss");
+        }
+
+        private void btnLogout_Click(object sender, EventArgs e)
+        {
+            // Try to find the already opened Form1 (start screen)
+            foreach (Form form in Application.OpenForms)
             {
-                actuator.IsOn = true;
-                actuator.StartTime = DateTime.Now;
+                if (form is Form1)
+                {
+                    form.Show();
+                    form.BringToFront();
+                    this.Close();
+                    return;
+                }
+            }
+
+            // If Form1 is not found (edge case), create it
+            var startForm = new Form1();
+            startForm.Show();
+
+            this.Close();
+        }
+
+        private void ApplyPermissions()
+        {
+            bool isAdmin = IsAdmin();
+
+            btnTempToggle.Enabled = isAdmin;
+            btnHumidityToggle.Enabled = isAdmin;
+            btnSoilToggle.Enabled = isAdmin;
+
+            if (!isAdmin)
+            {
+                btnTempToggle.Text += " (Admin only)";
+                btnHumidityToggle.Text += " (Admin only)";
+                btnSoilToggle.Text += " (Admin only)";
+            }
+        }
+
+        private void btnEspSend_Click(object sender, EventArgs e)
+        {
+            var cmd = txtEspCommand.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(cmd))
+                return;
+
+            if (espSerial == null || !espSerial.IsOpen)
+            {
+                txtEspLog.AppendText("[ESP] Not connected\n");
                 return;
             }
 
-            if (!on && actuator.IsOn)
+            espSerial.WriteLine(cmd);
+            txtEspLog.AppendText($"> {cmd}{Environment.NewLine}");
+            txtEspCommand.Clear();
+        }
+        private void txtSprinklerDuration_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // Allow digits and control keys (Backspace)
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                e.Handled = true;
+        }
+
+        private void txtSprinklerDuration_KeyPress_1(object sender, KeyPressEventArgs e)
+        {
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                e.Handled = true;
+        }
+
+        private void txtSprinklerTime_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (!char.IsControl(e.KeyChar) &&
+        !char.IsDigit(e.KeyChar) &&
+        e.KeyChar != ':')
             {
-                actuator.IsOn = false;
-                if (actuator.StartTime.HasValue)
-                    actuator.TotalOnTime += DateTime.Now - actuator.StartTime.Value;
-                actuator.StartTime = null;
+                e.Handled = true;
             }
         }
 
-        private void UpdateActuatorUI(Actuator actuator, Label statusLabel, Label timeLabel, string name)
+        private void txtSprinklerTime_Leave(object sender, EventArgs e)
         {
-            var elapsed = actuator.TotalOnTime;
+            var text = txtSprinklerTime.Text;
 
-            if (actuator.IsOn && actuator.StartTime.HasValue)
-                elapsed += DateTime.Now - actuator.StartTime.Value;
+            // Must be exactly HH:mm
+            var parts = text.Split(':');
+            if (parts.Length != 2 ||
+                !int.TryParse(parts[0], out int hour) ||
+                !int.TryParse(parts[1], out int minute))
+            {
+                ShowInvalidTime();
+                return;
+            }
 
-            statusLabel.Text = actuator.IsOn ? $"{name}: ON" : $"{name}: OFF";
-            statusLabel.ForeColor = actuator.IsOn ? Color.Green : Color.Red;
+            // Standard time ranges
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
+            {
+                ShowInvalidTime();
+                return;
+            }
 
-            timeLabel.Text = elapsed.ToString(@"hh\:mm\:ss");
+            // Normalize format (e.g. 9:5 -> 09:05)
+            txtSprinklerTime.Text = $"{hour:D2}:{minute:D2}";
+            SaveAppSettings();
+
         }
 
-        // ================= HELP (if your Designer has the ? button wired) =================
-        private void btnHelp_Click(object sender, EventArgs e)
+        private void ShowInvalidTime()
         {
-            // Uses current loaded rules
-            string msg =
-                $"Rules source:\n{RulesFilePath}\n\n" +
-                "Heater:\n" +
-                $"  ON if Temp <= {rules.Heater.OnBelow}\n" +
-                $"  OFF if Temp >= {rules.Heater.OffAbove}\n\n" +
-                "Fan:\n" +
-                $"  ON if Temp >= {rules.Fan.OnAboveTemp} OR Humidity >= {rules.Fan.OnAboveHumidity}\n" +
-                $"  OFF only when Temp <= {rules.Fan.OffBelowTemp} AND Humidity <= {rules.Fan.OffBelowHumidity}\n\n" +
-                "Pump:\n" +
-                $"  ON if Soil <= {rules.Pump.OnBelowSoil}\n" +
-                $"  OFF if Soil >= {rules.Pump.OffAboveSoil}\n\n" +
-                "Notes:\n" +
-                "• A rule is applied only if that sensor is ON and its value is numeric.\n" +
-                "• Hysteresis is used to avoid constant ON/OFF toggling.";
+            MessageBox.Show(
+                "Please enter a valid time in HH:mm format.\n\n" +
+                "- Hours: 0 to 23\n" +
+                "- Minutes: 0 to 59",
+                "Invalid Sprinkler Time",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
 
-            MessageBox.Show(msg, "Help: Control Rules", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            txtSprinklerTime.Text = SprinklerStartTime.ToString(@"hh\:mm");
+            txtSprinklerTime.Focus();
         }
 
-        // ================= LOGOUT =================
-        private void btnLogout_Click(object sender, EventArgs e)
+        private class AppSettings
+        {
+            public string SprinklerTime { get; set; } = "12:00";
+            public int SprinklerDurationMinutes { get; set; } = 10;
+
+            public string TemperatureValue { get; set; } = "";
+            public string HumidityValue { get; set; } = "";
+            public string SoilValue { get; set; } = "";
+        }
+
+        private void LoadAppSettings()
         {
             try
             {
-                foreach (Form f in Application.OpenForms)
+                if (!File.Exists(SettingsFilePath))
+                    return;
+
+                var json = File.ReadAllText(SettingsFilePath);
+                appSettings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            }
+            catch
+            {
+                appSettings = new AppSettings();
+            }
+
+            // Apply to UI + logic
+            txtSprinklerTime.Text = appSettings.SprinklerTime;
+            txtSprinklerDuration.Text = appSettings.SprinklerDurationMinutes.ToString();
+
+            if (TimeSpan.TryParse(appSettings.SprinklerTime, out var t))
+                SprinklerStartTime = t;
+
+            SprinklerDuration = TimeSpan.FromMinutes(appSettings.SprinklerDurationMinutes);
+            // Apply sensor values
+            txtTemperature.Text = appSettings.TemperatureValue;
+            txtHumidity.Text = appSettings.HumidityValue;
+            txtSoil.Text = appSettings.SoilValue;
+
+        }
+        private void SaveAppSettings()
+        {
+            if (!IsAdmin())
+                return;
+
+            appSettings.SprinklerTime = txtSprinklerTime.Text;
+            appSettings.SprinklerDurationMinutes =
+                int.TryParse(txtSprinklerDuration.Text, out var m) ? m : 10;
+
+            // SAVE SENSOR VALUES
+            appSettings.TemperatureValue = txtTemperature.Text;
+            appSettings.HumidityValue = txtHumidity.Text;
+            appSettings.SoilValue = txtSoil.Text;
+
+            try
+            {
+                var json = JsonSerializer.Serialize(appSettings, new JsonSerializerOptions
                 {
-                    if (f.GetType().Name == "LoginPage")
+                    WriteIndented = true
+                });
+
+                File.WriteAllText(SettingsFilePath, json);
+            }
+            catch { }
+        }
+
+
+        private void txtSprinklerTime_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txtTemperature_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txtTemperature_Leave(object sender, EventArgs e)
+        {
+            SaveAppSettings();
+        }
+
+        private void txtHumidity_Leave(object sender, EventArgs e)
+        {
+            SaveAppSettings();
+
+        }
+
+        private void txtSoil_Leave(object sender, EventArgs e)
+        {
+            SaveAppSettings();
+
+        }
+        private void MainPage_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // If user closes window using X
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                foreach (Form form in Application.OpenForms)
+                {
+                    if (form is Form1)
                     {
-                        f.Show();
-                        f.BringToFront();
-                        Close();
+                        form.Show();
+                        form.BringToFront();
                         return;
                     }
                 }
 
-                var loginType = Type.GetType("classwork.LoginPage");
-                if (loginType != null && typeof(Form).IsAssignableFrom(loginType))
-                {
-                    var login = (Form)Activator.CreateInstance(loginType);
-                    login.Show();
-                    Close();
-                    return;
-                }
+                // Safety fallback
+                new Form1().Show();
             }
-            catch
-            {
-                // fallback below
-            }
-
-            Close();
         }
 
-        // ===== REQUIRED because Designer wires this event =====
-        private void btnEspSend_Click(object sender, EventArgs e)
+        private void MainPage_Load(object sender, EventArgs e)
         {
-            var cmd = txtEspCommand.Text?.Trim();
-            if (string.IsNullOrWhiteSpace(cmd))
-                return;
 
-            txtEspLog.AppendText($"> {cmd}{Environment.NewLine}");
-            txtEspCommand.Clear();
         }
+
+        private void MainPage_FormClosing_1(object sender, FormClosingEventArgs e)
+        {
+            // If user closes MainPage using the X button
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                foreach (Form form in Application.OpenForms)
+                {
+                    if (form is Form1)
+                    {
+                        form.Show();
+                        form.BringToFront();
+                        return;
+                    }
+                }
+
+                // Safety fallback: recreate start screen
+                new Form1().Show();
+            }
+        }
+
     }
 }
