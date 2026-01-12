@@ -1,382 +1,67 @@
 [
   {
-    "Username": "1213",
-    "LoginTime": "2025-11-02T19:30:34.1254315+04:00",
-    "Success": false
+    "Username": "luka",
+    "LoginTime": "2026-01-12T16:07:18.4452586+04:00",
+    "Success": true
   },
   {
     "Username": "luka",
-    "LoginTime": "2025-11-02T19:30:40.3052983+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-11-02T19:30:41.4010668+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-11-02T19:30:53.9891807+04:00",
+    "LoginTime": "2026-01-12T16:09:54.211141+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2025-11-02T19:31:00.8263848+04:00",
+    "LoginTime": "2026-01-12T16:10:02.7155542+04:00",
     "Success": true
   },
   {
     "Username": "luka",
-    "LoginTime": "2025-11-02T19:31:06.5050211+04:00",
+    "LoginTime": "2026-01-12T16:30:04.7354235+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2025-11-02T19:31:11.6371879+04:00",
+    "LoginTime": "2026-01-12T16:30:28.6120176+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2025-11-02T19:44:03.5678493+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-11-02T20:01:15.1305026+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-11-18T09:26:08.7897426+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-11-18T09:32:19.4967063+04:00",
+    "LoginTime": "2026-01-12T16:33:17.0396861+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2025-11-18T09:33:20.5254794+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-11-18T09:33:37.212806+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:01:17.366827+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:13:12.7225825+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:13:15.1994401+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:13:28.9011033+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:16:28.4650131+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:16:57.3813506+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:20:22.3555636+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:21:10.9407274+04:00",
+    "LoginTime": "2026-01-12T16:37:37.7881664+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2025-12-24T13:21:44.9089645+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:21:50.3698866+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:34:00.9544188+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:38:12.3078818+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T13:41:16.9417763+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T14:32:56.0740965+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T14:37:33.1429057+04:00",
-    "Success": true
-  },
-  {
-    "Username": "",
-    "LoginTime": "2025-12-24T14:37:36.8100225+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T14:37:53.2693567+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T21:17:00.1434844+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T21:20:33.0322398+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T21:57:41.7276263+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T21:57:45.9674225+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:00:09.2026184+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:08:33.2298684+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:29:04.1633352+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:43:37.2417625+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:49:39.0699156+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:49:41.5684713+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:58:29.7291465+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T22:58:31.7454645+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T23:24:23.9583019+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-24T23:45:56.9693708+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T00:26:12.2175128+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T00:55:24.0168603+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T00:57:26.9856452+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:04:20.0916574+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:06:00.5093089+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:13:45.9836512+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:16:53.9376308+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:19:18.5766808+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:20:44.3101042+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:23:51.4604114+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2025-12-25T01:27:45.0455115+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T17:50:58.3079633+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T18:16:43.8365335+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T18:31:45.1559846+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T18:33:42.5491392+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T18:51:45.9812115+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T19:22:52.7957424+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T19:36:45.677316+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T19:39:27.7427731+04:00",
+    "LoginTime": "2026-01-12T16:37:50.7661503+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2026-01-04T19:40:26.9656456+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T19:42:23.1996511+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T19:47:00.6752529+04:00",
+    "LoginTime": "2026-01-12T16:38:27.3300822+04:00",
     "Success": true
   },
   {
     "Username": "ana",
-    "LoginTime": "2026-01-04T19:47:28.805467+04:00",
+    "LoginTime": "2026-01-12T16:45:12.6010631+04:00",
     "Success": true
   },
   {
     "Username": "luka",
-    "LoginTime": "2026-01-04T19:50:42.1167961+04:00",
-    "Success": true
-  },
-  {
-    "Username": "ana",
-    "LoginTime": "2026-01-04T19:50:53.2826157+04:00",
+    "LoginTime": "2026-01-12T16:45:32.4543237+04:00",
     "Success": true
   },
   {
     "Username": "luka",
-    "LoginTime": "2026-01-04T19:53:47.7819781+04:00",
-    "Success": true
-  },
-  {
-    "Username": "ana",
-    "LoginTime": "2026-01-04T19:54:02.0465884+04:00",
+    "LoginTime": "2026-01-12T16:48:16.91718+04:00",
     "Success": true
   },
   {
     "Username": "luka",
-    "LoginTime": "2026-01-04T19:54:12.9483443+04:00",
-    "Success": false
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T19:54:15.500277+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T20:00:16.4066285+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T20:00:53.155896+04:00",
-    "Success": true
-  },
-  {
-    "Username": "luka",
-    "LoginTime": "2026-01-04T20:05:47.8347587+04:00",
+    "LoginTime": "2026-01-12T16:52:44.8755646+04:00",
     "Success": true
   }
 ]

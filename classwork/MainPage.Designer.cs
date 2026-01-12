@@ -11,6 +11,7 @@ namespace classwork
         private System.Windows.Forms.Label lblFanStatus;
         private System.Windows.Forms.Label lblHeaterStatus;
         private System.Windows.Forms.Label lblPumpStatus;
+        private System.Windows.Forms.Button btnLogs;
 
         // ===== Actuator time labels =====
         private System.Windows.Forms.Label lblFanTime;
@@ -59,6 +60,7 @@ namespace classwork
 
         private void InitializeComponent()
         {
+            btnLogs = new Button();
             labelUser = new Label();
             labelTemperature = new Label();
             labelHumidity = new Label();
@@ -314,6 +316,18 @@ namespace classwork
             lblEspStatus.Size = new Size(130, 19);
             lblEspStatus.TabIndex = 23;
             lblEspStatus.Text = "ESP: Disconnected";
+            //
+            // LOGS
+            //
+            btnLogs.Font = new Font("Segoe UI", 12F);
+            btnLogs.Location = new Point(580, 20);
+            btnLogs.Name = "btnLogs";
+            btnLogs.Size = new Size(110, 45);
+            btnLogs.TabIndex = 27;
+            btnLogs.Text = "Logs";
+            btnLogs.UseVisualStyleBackColor = true;
+            btnLogs.Click += btnLogs_Click;
+
             // 
             // txtEspLog
             // 
@@ -372,6 +386,7 @@ namespace classwork
             Controls.Add(txtEspLog);
             Controls.Add(txtEspCommand);
             Controls.Add(btnEspSend);
+            Controls.Add(btnLogs);
             Name = "MainPage";
             Text = "Main Page";
             FormClosing += MainPage_FormClosing_1;
@@ -394,7 +409,6 @@ namespace classwork
                 }
                 catch
                 {
-                    // Try next port
                 }
             }
 
