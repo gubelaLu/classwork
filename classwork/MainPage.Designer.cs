@@ -1,4 +1,5 @@
-﻿using System.IO.Ports;
+﻿using System.Globalization;
+using System.IO.Ports;
 using System.Text.Json;
 
 namespace classwork
@@ -394,57 +395,13 @@ namespace classwork
             ResumeLayout(false);
             PerformLayout();
         }
-        private void InitializeEspConnection()
-        {
-            foreach (string portName in SerialPort.GetPortNames())
-            {
-                try
-                {
-                    espSerial = new SerialPort(portName, 115200);
-                    espSerial.Open();
+       
 
-                    lblEspStatus.Text = $"ESP: Connected ({portName})";
-                    lblEspStatus.ForeColor = Color.Green;
-                    return;
-                }
-                catch
-                {
-                }
-            }
-
-            lblEspStatus.Text = "ESP: Disconnected";
-            lblEspStatus.ForeColor = Color.Red;
+       
         }
 
-        private ControlRules LoadRulesFromJson()
-        {
-            var fallback = new ControlRules
-            {
-                Heater = new HeaterRules { OnBelow = 15, OffAbove = 30 },
-                Fan = new FanRules
-                {
-                    OnAboveTemp = 28,
-                    OffBelowTemp = 25,
-                    OnAboveHumidity = 75,
-                    OffBelowHumidity = 65
-                },
-                Pump = new PumpRules { OnBelowSoil = 30, OffAboveSoil = 45 }
-            };
-
-            try
-            {
-                if (!File.Exists(RulesFilePath))
-                    return fallback;
-
-                var json = File.ReadAllText(RulesFilePath);
-                return JsonSerializer.Deserialize<ControlRules>(json) ?? fallback;
-            }
-            catch
-            {
-                return fallback;
-            }
-        }
+        
 
 
     }
-}
+

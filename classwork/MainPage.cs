@@ -198,7 +198,43 @@ namespace classwork
             // 4️⃣ Initialize ESP serial communication
             InitializeEspConnection();
         }
+        private void InitializeEspConnection()
+        {
+            lblEspStatus.Text = "ESP: Connecting...";
+            lblEspStatus.ForeColor = Color.Orange;
 
+            foreach (string portName in SerialPort.GetPortNames())
+            {
+                SerialPort port = null;
+
+                try
+                {
+                    port = new SerialPort(portName, 115200)
+                    {
+                        NewLine = "\n",
+                        ReadTimeout = 500,
+                        WriteTimeout = 500
+                    };
+
+                    port.Open();
+
+                    // SUCCESS → lock this port
+                    espSerial = port;
+                    espSerial.DataReceived += EspSerial_DataReceived;
+
+                    lblEspStatus.Text = $"ESP: Connected ({portName})";
+                    lblEspStatus.ForeColor = Color.Green;
+                    return;
+                }
+                catch
+                {
+                    port?.Dispose(); // prevent port leaks
+                }
+            }
+
+            lblEspStatus.Text = "ESP: Disconnected";
+            lblEspStatus.ForeColor = Color.Red;
+        }
         // ================= UI UPDATE =================
 
         // Central update loop: UI + automation logic
@@ -509,7 +545,34 @@ namespace classwork
                 btnSoilToggle.Text += " (Admin only)";
             }
         }
+        private ControlRules LoadRulesFromJson()
+        {
+            var fallback = new ControlRules
+            {
+                Heater = new HeaterRules { OnBelow = 15, OffAbove = 30 },
+                Fan = new FanRules
+                {
+                    OnAboveTemp = 28,
+                    OffBelowTemp = 25,
+                    OnAboveHumidity = 75,
+                    OffBelowHumidity = 65
+                },
+                Pump = new PumpRules { OnBelowSoil = 30, OffAboveSoil = 45 }
+            };
 
+            try
+            {
+                if (!File.Exists(RulesFilePath))
+                    return fallback;
+
+                var json = File.ReadAllText(RulesFilePath);
+                return JsonSerializer.Deserialize<ControlRules>(json) ?? fallback;
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
         // ================= ESP COMMAND SENDER =================
         // Sends a raw command string to the connected ESP device
         private void btnEspSend_Click(object sender, EventArgs e)
@@ -533,7 +596,66 @@ namespace classwork
             txtEspLog.AppendText($"> {cmd}{Environment.NewLine}");
             txtEspCommand.Clear();
         }
+        private void EspSerial_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            try
+            {
+                string line = espSerial.ReadLine().Trim();
+                if (string.IsNullOrWhiteSpace(line))
+                    return;
 
+                // Example expected format:
+                // TEMP:23.6;HUM:45.1;SOIL:612
+
+                double? temp = null;
+                double? hum = null;
+                double? soil = null;
+
+                foreach (var part in line.Split(';'))
+                {
+                    var kv = part.Split(':');
+                    if (kv.Length != 2)
+                        continue;
+
+                    var key = kv[0].Trim().ToUpperInvariant();
+                    var value = kv[1].Trim().Replace(',', '.');
+
+                    if (!double.TryParse(value, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out var v))
+                        continue;
+
+                    switch (key)
+                    {
+                        case "TEMP":
+                            temp = v;
+                            break;
+                        case "HUM":
+                            hum = v;
+                            break;
+                        case "SOIL":
+                            soil = v;
+                            break;
+                    }
+                }
+
+                // Switch to UI thread
+                BeginInvoke(new Action(() =>
+                {
+                    if (temp.HasValue && TemperatureSensor.IsOn)
+                        txtTemperature.Text = temp.Value.ToString("F1");
+
+                    if (hum.HasValue && HumiditySensor.IsOn)
+                        txtHumidity.Text = hum.Value.ToString("F1");
+
+                    if (soil.HasValue && SoilSensor.IsOn)
+                        txtSoil.Text = soil.Value.ToString("F0");
+                }));
+            }
+            catch
+            {
+                // Ignore malformed serial data
+            }
+        }
         // ================= INPUT VALIDATION =================
         // Allows only numeric input for sprinkler duration
         private void txtSprinklerDuration_KeyPress(object sender, KeyPressEventArgs e)
