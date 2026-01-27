@@ -1,12 +1,17 @@
-﻿using System.Globalization;
-using System.IO.Ports;
-using System.Text.Json;
-
+﻿
 namespace classwork
 {
     partial class MainPage
     {
+        private System.Windows.Forms.CheckBox chkPumpOverride;
+
         private System.ComponentModel.IContainer components = null;
+        private System.Windows.Forms.Button btnManualSprinkler;
+        private System.Windows.Forms.Button btnManualHeater;
+        private System.Windows.Forms.Button btnManualFan;
+
+        private CheckBox chkFanOverride;
+
 
         // ===== Actuator status labels =====
         private System.Windows.Forms.Label lblFanStatus;
@@ -58,9 +63,23 @@ namespace classwork
                 components.Dispose();
             base.Dispose(disposing);
         }
+        private void UpdateOverrideUI()
+        {
+            if (chkFanOverride == null ||
+                chkHeaterOverride == null ||
+                chkPumpOverride == null)
+                return;
+        }
+
+
 
         private void InitializeComponent()
         {
+            chkFanOverride = new CheckBox();
+            btnManualFan = new Button();
+            chkPumpOverride = new CheckBox();
+            btnManualSprinkler = new Button();
+            btnManualHeater = new Button();
             btnLogs = new Button();
             labelUser = new Label();
             labelTemperature = new Label();
@@ -89,7 +108,72 @@ namespace classwork
             txtEspLog = new TextBox();
             txtEspCommand = new TextBox();
             btnEspSend = new Button();
+            chkHeaterOverride = new CheckBox();
             SuspendLayout();
+            // 
+            // chkFanOverride
+            // 
+            chkFanOverride.AutoSize = true;
+            chkFanOverride.Location = new Point(806, 444);
+            chkFanOverride.Name = "chkFanOverride";
+            chkFanOverride.Size = new Size(88, 24);
+            chkFanOverride.TabIndex = 102;
+            chkFanOverride.Text = "Override";
+            chkFanOverride.CheckedChanged += chkFanOverride_CheckedChanged;
+            // 
+            // btnManualFan
+            // 
+            btnManualFan.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnManualFan.Location = new Point(540, 430);
+            btnManualFan.Name = "btnManualFan";
+            btnManualFan.Size = new Size(260, 50);
+            btnManualFan.TabIndex = 101;
+            btnManualFan.Text = "Fan: MANUAL OFF";
+            btnManualFan.UseVisualStyleBackColor = true;
+            btnManualFan.Click += btnManualFan_Click;
+            // 
+            // chkPumpOverride
+            // 
+            chkPumpOverride.AutoSize = true;
+            chkPumpOverride.Location = new Point(806, 330);
+            chkPumpOverride.Name = "chkPumpOverride";
+            chkPumpOverride.Size = new Size(88, 24);
+            chkPumpOverride.TabIndex = 0;
+            chkPumpOverride.Text = "Override";
+            chkPumpOverride.CheckedChanged += chkPumpOverride_CheckedChanged;
+            // 
+            // btnManualSprinkler
+            // 
+            btnManualSprinkler.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnManualSprinkler.Location = new Point(540, 310);
+            btnManualSprinkler.Name = "btnManualSprinkler";
+            btnManualSprinkler.Size = new Size(260, 50);
+            btnManualSprinkler.TabIndex = 99;
+            btnManualSprinkler.Text = "Sprinkler: MANUAL OFF";
+            btnManualSprinkler.UseVisualStyleBackColor = true;
+            btnManualSprinkler.Click += btnManualSprinkler_Click;
+            // 
+            // btnManualHeater
+            // 
+            btnManualHeater.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnManualHeater.Location = new Point(540, 370);
+            btnManualHeater.Name = "btnManualHeater";
+            btnManualHeater.Size = new Size(260, 50);
+            btnManualHeater.TabIndex = 100;
+            btnManualHeater.Text = "Heater: MANUAL OFF";
+            btnManualHeater.UseVisualStyleBackColor = true;
+            btnManualHeater.Click += btnManualHeater_Click;
+            // 
+            // btnLogs
+            // 
+            btnLogs.Font = new Font("Segoe UI", 12F);
+            btnLogs.Location = new Point(580, 20);
+            btnLogs.Name = "btnLogs";
+            btnLogs.Size = new Size(110, 45);
+            btnLogs.TabIndex = 27;
+            btnLogs.Text = "Logs";
+            btnLogs.UseVisualStyleBackColor = true;
+            btnLogs.Click += btnLogs_Click;
             // 
             // labelUser
             // 
@@ -97,7 +181,7 @@ namespace classwork
             labelUser.Font = new Font("Segoe UI", 16F);
             labelUser.Location = new Point(40, 30);
             labelUser.Name = "labelUser";
-            labelUser.Size = new Size(0, 30);
+            labelUser.Size = new Size(0, 37);
             labelUser.TabIndex = 0;
             // 
             // labelTemperature
@@ -106,7 +190,7 @@ namespace classwork
             labelTemperature.Font = new Font("Segoe UI", 14F);
             labelTemperature.Location = new Point(40, 120);
             labelTemperature.Name = "labelTemperature";
-            labelTemperature.Size = new Size(122, 25);
+            labelTemperature.Size = new Size(154, 32);
             labelTemperature.TabIndex = 1;
             labelTemperature.Text = "Temperature:";
             // 
@@ -116,7 +200,7 @@ namespace classwork
             labelHumidity.Font = new Font("Segoe UI", 14F);
             labelHumidity.Location = new Point(40, 170);
             labelHumidity.Name = "labelHumidity";
-            labelHumidity.Size = new Size(92, 25);
+            labelHumidity.Size = new Size(117, 32);
             labelHumidity.TabIndex = 2;
             labelHumidity.Text = "Humidity:";
             // 
@@ -126,7 +210,7 @@ namespace classwork
             labelSoil.Font = new Font("Segoe UI", 14F);
             labelSoil.Location = new Point(40, 220);
             labelSoil.Name = "labelSoil";
-            labelSoil.Size = new Size(127, 25);
+            labelSoil.Size = new Size(160, 32);
             labelSoil.TabIndex = 3;
             labelSoil.Text = "Soil Moisture:";
             // 
@@ -136,7 +220,7 @@ namespace classwork
             labelSprinklerTime.Font = new Font("Segoe UI", 14F);
             labelSprinklerTime.Location = new Point(40, 280);
             labelSprinklerTime.Name = "labelSprinklerTime";
-            labelSprinklerTime.Size = new Size(216, 25);
+            labelSprinklerTime.Size = new Size(275, 32);
             labelSprinklerTime.TabIndex = 10;
             labelSprinklerTime.Text = "Sprinkler Time (HH:mm):";
             // 
@@ -146,7 +230,7 @@ namespace classwork
             labelSprinklerDuration.Font = new Font("Segoe UI", 14F);
             labelSprinklerDuration.Location = new Point(40, 330);
             labelSprinklerDuration.Name = "labelSprinklerDuration";
-            labelSprinklerDuration.Size = new Size(139, 25);
+            labelSprinklerDuration.Size = new Size(174, 32);
             labelSprinklerDuration.TabIndex = 12;
             labelSprinklerDuration.Text = "Duration (min):";
             // 
@@ -156,7 +240,7 @@ namespace classwork
             lblSprinklerInfo.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             lblSprinklerInfo.Location = new Point(40, 385);
             lblSprinklerInfo.Name = "lblSprinklerInfo";
-            lblSprinklerInfo.Size = new Size(210, 21);
+            lblSprinklerInfo.Size = new Size(268, 28);
             lblSprinklerInfo.TabIndex = 14;
             lblSprinklerInfo.Text = "Sprinkler: 12:00 for 10 min";
             // 
@@ -165,7 +249,7 @@ namespace classwork
             txtTemperature.Font = new Font("Segoe UI", 14F);
             txtTemperature.Location = new Point(329, 124);
             txtTemperature.Name = "txtTemperature";
-            txtTemperature.Size = new Size(180, 32);
+            txtTemperature.Size = new Size(180, 39);
             txtTemperature.TabIndex = 4;
             txtTemperature.TextChanged += txtTemperature_TextChanged;
             txtTemperature.Leave += txtTemperature_Leave;
@@ -175,7 +259,7 @@ namespace classwork
             txtHumidity.Font = new Font("Segoe UI", 14F);
             txtHumidity.Location = new Point(329, 170);
             txtHumidity.Name = "txtHumidity";
-            txtHumidity.Size = new Size(180, 32);
+            txtHumidity.Size = new Size(180, 39);
             txtHumidity.TabIndex = 5;
             txtHumidity.Leave += txtHumidity_Leave;
             // 
@@ -184,7 +268,7 @@ namespace classwork
             txtSoil.Font = new Font("Segoe UI", 14F);
             txtSoil.Location = new Point(329, 220);
             txtSoil.Name = "txtSoil";
-            txtSoil.Size = new Size(180, 32);
+            txtSoil.Size = new Size(180, 39);
             txtSoil.TabIndex = 6;
             txtSoil.Leave += txtSoil_Leave;
             // 
@@ -193,7 +277,7 @@ namespace classwork
             txtSprinklerTime.Font = new Font("Segoe UI", 14F);
             txtSprinklerTime.Location = new Point(329, 277);
             txtSprinklerTime.Name = "txtSprinklerTime";
-            txtSprinklerTime.Size = new Size(180, 32);
+            txtSprinklerTime.Size = new Size(180, 39);
             txtSprinklerTime.TabIndex = 11;
             txtSprinklerTime.Text = "12:00";
             txtSprinklerTime.TextChanged += txtSprinklerTime_TextChanged;
@@ -205,7 +289,7 @@ namespace classwork
             txtSprinklerDuration.Font = new Font("Segoe UI", 14F);
             txtSprinklerDuration.Location = new Point(329, 330);
             txtSprinklerDuration.Name = "txtSprinklerDuration";
-            txtSprinklerDuration.Size = new Size(180, 32);
+            txtSprinklerDuration.Size = new Size(180, 39);
             txtSprinklerDuration.TabIndex = 13;
             txtSprinklerDuration.Text = "10";
             txtSprinklerDuration.KeyPress += txtSprinklerDuration_KeyPress_1;
@@ -257,7 +341,7 @@ namespace classwork
             lblFanStatus.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             lblFanStatus.Location = new Point(40, 420);
             lblFanStatus.Name = "lblFanStatus";
-            lblFanStatus.Size = new Size(73, 21);
+            lblFanStatus.Size = new Size(90, 28);
             lblFanStatus.TabIndex = 17;
             lblFanStatus.Text = "Fan: OFF";
             // 
@@ -267,7 +351,7 @@ namespace classwork
             lblHeaterStatus.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             lblHeaterStatus.Location = new Point(180, 420);
             lblHeaterStatus.Name = "lblHeaterStatus";
-            lblHeaterStatus.Size = new Size(98, 21);
+            lblHeaterStatus.Size = new Size(123, 28);
             lblHeaterStatus.TabIndex = 19;
             lblHeaterStatus.Text = "Heater: OFF";
             // 
@@ -277,7 +361,7 @@ namespace classwork
             lblPumpStatus.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             lblPumpStatus.Location = new Point(340, 420);
             lblPumpStatus.Name = "lblPumpStatus";
-            lblPumpStatus.Size = new Size(91, 21);
+            lblPumpStatus.Size = new Size(112, 28);
             lblPumpStatus.TabIndex = 21;
             lblPumpStatus.Text = "Pump: OFF";
             // 
@@ -287,7 +371,7 @@ namespace classwork
             lblFanTime.Font = new Font("Segoe UI", 10F);
             lblFanTime.Location = new Point(40, 445);
             lblFanTime.Name = "lblFanTime";
-            lblFanTime.Size = new Size(0, 19);
+            lblFanTime.Size = new Size(0, 23);
             lblFanTime.TabIndex = 18;
             // 
             // lblHeaterTime
@@ -296,7 +380,7 @@ namespace classwork
             lblHeaterTime.Font = new Font("Segoe UI", 10F);
             lblHeaterTime.Location = new Point(180, 445);
             lblHeaterTime.Name = "lblHeaterTime";
-            lblHeaterTime.Size = new Size(0, 19);
+            lblHeaterTime.Size = new Size(0, 23);
             lblHeaterTime.TabIndex = 20;
             // 
             // lblPumpTime
@@ -305,7 +389,7 @@ namespace classwork
             lblPumpTime.Font = new Font("Segoe UI", 10F);
             lblPumpTime.Location = new Point(340, 445);
             lblPumpTime.Name = "lblPumpTime";
-            lblPumpTime.Size = new Size(0, 19);
+            lblPumpTime.Size = new Size(0, 23);
             lblPumpTime.TabIndex = 22;
             // 
             // lblEspStatus
@@ -314,21 +398,9 @@ namespace classwork
             lblEspStatus.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblEspStatus.Location = new Point(40, 470);
             lblEspStatus.Name = "lblEspStatus";
-            lblEspStatus.Size = new Size(130, 19);
+            lblEspStatus.Size = new Size(156, 23);
             lblEspStatus.TabIndex = 23;
             lblEspStatus.Text = "ESP: Disconnected";
-            //
-            // LOGS
-            //
-            btnLogs.Font = new Font("Segoe UI", 12F);
-            btnLogs.Location = new Point(580, 20);
-            btnLogs.Name = "btnLogs";
-            btnLogs.Size = new Size(110, 45);
-            btnLogs.TabIndex = 27;
-            btnLogs.Text = "Logs";
-            btnLogs.UseVisualStyleBackColor = true;
-            btnLogs.Click += btnLogs_Click;
-
             // 
             // txtEspLog
             // 
@@ -344,7 +416,7 @@ namespace classwork
             // 
             txtEspCommand.Location = new Point(40, 635);
             txtEspCommand.Name = "txtEspCommand";
-            txtEspCommand.Size = new Size(420, 23);
+            txtEspCommand.Size = new Size(420, 27);
             txtEspCommand.TabIndex = 25;
             // 
             // btnEspSend
@@ -357,9 +429,25 @@ namespace classwork
             btnEspSend.UseVisualStyleBackColor = true;
             btnEspSend.Click += btnEspSend_Click;
             // 
+            // chkHeaterOverride
+            // 
+            chkHeaterOverride.AutoSize = true;
+            chkHeaterOverride.Location = new Point(806, 385);
+            chkHeaterOverride.Name = "chkHeaterOverride";
+            chkHeaterOverride.Size = new Size(88, 24);
+            chkHeaterOverride.TabIndex = 150;
+            chkHeaterOverride.Text = "Override";
+            chkHeaterOverride.UseVisualStyleBackColor = true;
+            chkHeaterOverride.CheckedChanged += chkHeaterOverride_CheckedChanged;
+            // 
             // MainPage
             // 
             ClientSize = new Size(900, 700);
+            Controls.Add(chkPumpOverride);
+            Controls.Add(btnManualHeater);
+            Controls.Add(btnManualFan);
+            Controls.Add(chkFanOverride);
+            Controls.Add(btnManualSprinkler);
             Controls.Add(labelUser);
             Controls.Add(labelTemperature);
             Controls.Add(labelHumidity);
@@ -388,20 +476,18 @@ namespace classwork
             Controls.Add(txtEspCommand);
             Controls.Add(btnEspSend);
             Controls.Add(btnLogs);
+            Controls.Add(chkHeaterOverride);
             Name = "MainPage";
             Text = "Main Page";
-            FormClosing += MainPage_FormClosing_1;
             Load += MainPage_Load;
             ResumeLayout(false);
             PerformLayout();
+
         }
-       
-
-       
-        }
-
-        
-
-
+        private CheckBox chkHeaterOverride;
     }
 
+
+
+
+}

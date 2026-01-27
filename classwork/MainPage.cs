@@ -10,12 +10,21 @@ namespace classwork
 {
     public partial class MainPage : Form
     {
+        private bool heaterForcedOn;
+        private bool fanForcedOn;
+        private bool pumpForcedOn;
+
+
+        private static readonly string AppDataDir =
+    AppDomain.CurrentDomain.BaseDirectory;
+
         // Path to JSON file that stores UI/app settings (sprinkler, sensor values)
-        private const string SettingsFilePath =
-            @"C:\Users\Administrator\Source\Repos\classworkL\classwork\appSettings.json";
+        private static readonly string SettingsFilePath =
+    Path.Combine(AppDataDir, "appSettings.json");
         // Path to login activity log file
-        private const string LoginLogFilePath =
-            @"C:\Users\Administrator\Source\Repos\classworkL\classwork\login_log.json";
+        private static readonly string LoginLogFilePath =
+    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "login_log.json");
+
 
         // Object holding deserialized application settings
         private AppSettings appSettings = new();
@@ -31,13 +40,16 @@ namespace classwork
         private SerialPort espSerial;
 
         // Path to JSON file that contains automation rules
-        private const string RulesFilePath =
-            @"C:\Users\Administrator\Source\Repos\classworkL\classwork\controlRules.json";
+        private static readonly string RulesFilePath =
+    Path.Combine(AppDataDir, "controlRules.json");
 
         // Object holding deserialized automation rules
         private ControlRules rules;
 
         // ================= SPRINKLER (MODIFIABLE) =================
+        // Manual sprinkler override
+        private bool manualSprinklerOn = false;
+
 
         // Time of day when sprinkler should start
         private TimeSpan SprinklerStartTime = new TimeSpan(12, 0, 0);
@@ -144,6 +156,12 @@ namespace classwork
 
             // Load automation thresholds from JSON file
             rules = LoadRulesFromJson();
+            rules ??= new ControlRules();
+
+            rules.Heater ??= new HeaterRules();
+            rules.Fan ??= new FanRules();
+            rules.Pump ??= new PumpRules();
+
 
             // 1️⃣ Button click wiring (admin-only sensor toggles)
             btnTempToggle.Click += (_, __) =>
@@ -197,6 +215,17 @@ namespace classwork
 
             // 4️⃣ Initialize ESP serial communication
             InitializeEspConnection();
+            UpdateOverrideUI();
+            chkHeaterOverride.AutoSize = true;
+            chkHeaterOverride.Name = "chkHeaterOverride";
+            chkHeaterOverride.Text = "Override";
+
+            chkHeaterOverride.Left = btnManualHeater.Right + 5;
+            chkHeaterOverride.Top =
+                btnManualHeater.Top +
+                (btnManualHeater.Height - chkHeaterOverride.Height) / 2;
+
+
         }
         private void InitializeEspConnection()
         {
@@ -304,37 +333,77 @@ namespace classwork
         // Applies automation logic based on sensor values and configured rules
         private void ApplyAutomationRules()
         {
-            // Safely parse sensor input values from textboxes
+            if (rules == null)
+                return;
+
+            if (chkHeaterOverride == null || chkFanOverride == null)
+                return;
+
+            if (txtTemperature == null || txtHumidity == null || txtSoil == null)
+                return;
+
             double? temp = TryParseDouble(txtTemperature.Text);
             double? hum = TryParseDouble(txtHumidity.Text);
             double? soil = TryParseDouble(txtSoil.Text);
 
-            // Check whether timed sprinkler should currently be active
-            bool sprinkler = ApplyTimedSprinkler();
+            bool sprinkler = manualSprinklerOn || ApplyTimedSprinkler();
 
-            // Heater control logic with hysteresis:
-            // - Turn ON if temperature goes below OnBelow
-            // - Turn OFF only after it rises above OffAbove
-            SetActuatorState(Heater,
-                temp.HasValue &&
-                (!Heater.IsOn ? temp <= rules.Heater.OnBelow : temp < rules.Heater.OffAbove));
+            // ===== HEATER =====
+            bool heaterShouldBeOn;
 
-            // Fan control logic:
-            // - Turns ON if temperature OR humidity exceeds upper thresholds
-            // - Turns OFF only when both drop below lower thresholds
-            SetActuatorState(Fan,
-                !Fan.IsOn
-                    ? (temp >= rules.Fan.OnAboveTemp || hum >= rules.Fan.OnAboveHumidity)
-                    : (temp > rules.Fan.OffBelowTemp || hum > rules.Fan.OffBelowHumidity));
+            if (chkHeaterOverride.Checked)
+            {
+                heaterShouldBeOn = heaterForcedOn;
+            }
+            else
+            {
+                heaterShouldBeOn =
+                    temp.HasValue &&
+                    (!Heater.IsOn
+                        ? temp <= rules.Heater.OnBelow
+                        : temp < rules.Heater.OffAbove);
+            }
 
-            // Pump control logic:
-            // - Runs if sprinkler schedule is active
-            // - OR if soil moisture is below threshold (with hysteresis)
-            SetActuatorState(Pump,
-                sprinkler ||
-                (soil.HasValue &&
-                 (!Pump.IsOn ? soil <= rules.Pump.OnBelowSoil : soil < rules.Pump.OffAboveSoil)));
+            SetActuatorState(Heater, heaterShouldBeOn);
+
+            // ===== FAN =====
+            bool fanShouldBeOn;
+
+            if (chkFanOverride.Checked)
+            {
+                fanShouldBeOn = fanForcedOn;
+            }
+            else
+            {
+                fanShouldBeOn =
+                    !Fan.IsOn
+                        ? (temp >= rules.Fan.OnAboveTemp || hum >= rules.Fan.OnAboveHumidity)
+                        : (temp > rules.Fan.OffBelowTemp || hum > rules.Fan.OffBelowHumidity);
+            }
+
+            SetActuatorState(Fan, fanShouldBeOn);
+
+            // ===== PUMP =====
+            bool pumpShouldBeOn;
+
+            if (chkPumpOverride.Checked)
+            {
+                pumpShouldBeOn = pumpForcedOn;
+            }
+            else
+            {
+                pumpShouldBeOn =
+                    sprinkler ||
+                    (soil.HasValue &&
+                     (!Pump.IsOn
+                        ? soil <= rules.Pump.OnBelowSoil
+                        : soil < rules.Pump.OffAboveSoil));
+            }
+
+            SetActuatorState(Pump, pumpShouldBeOn);
         }
+
+
 
         // ================= HELP =================
         // Displays basic information about system behavior and sensors
@@ -349,6 +418,37 @@ namespace classwork
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
+        // ================= MANUAL SPRINKLER =================
+        private void btnManualSprinkler_Click(object sender, EventArgs e)
+        {
+            if (!IsAdmin())
+            {
+                ShowPermissionDenied();
+                return;
+            }
+
+            if (!chkPumpOverride.Checked)
+            {
+                MessageBox.Show(
+                    "Enable Override to control the pump manually.",
+                    "Pump is in AUTO mode",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            pumpForcedOn = !pumpForcedOn;
+
+            btnManualSprinkler.Text = pumpForcedOn
+                ? "Pump: MANUAL ON"
+                : "Pump: MANUAL OFF";
+
+            btnManualSprinkler.BackColor = pumpForcedOn
+                ? Color.LightGreen
+                : SystemColors.Control;
+        }
+
+
 
         // ================= UTILS =================
         // Tries to parse a double value regardless of comma/dot decimal separator
@@ -434,7 +534,6 @@ namespace classwork
             b.ForeColor = s.IsOn ? Color.Green : Color.Red;
 
             // Disable textbox when sensor is OFF
-            box.Enabled = s.IsOn;
         }
         // ================= LOGIN LOGS =================
         // Displays contents of login_log.json in a scrollable dialog
@@ -845,10 +944,14 @@ namespace classwork
         // Handles closing the form via the X button
         private void MainPage_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // If user manually closes the window
+            if (espSerial != null && espSerial.IsOpen)
+            {
+                espSerial.Close();
+                espSerial.Dispose();
+            }
+
             if (e.CloseReason == CloseReason.UserClosing)
             {
-                // Try to bring back the start/login form
                 foreach (Form form in Application.OpenForms)
                 {
                     if (form is Form1)
@@ -859,37 +962,87 @@ namespace classwork
                     }
                 }
 
-                // Safety fallback if Form1 is not open
                 new Form1().Show();
             }
         }
+
 
         private void MainPage_Load(object sender, EventArgs e)
         {
             // Reserved for future initialization logic
         }
-
-        // Duplicate FormClosing handler (designer-linked)
-        private void MainPage_FormClosing_1(object sender, FormClosingEventArgs e)
+        private void btnManualHeater_Click(object sender, EventArgs e)
         {
-            // If user closes MainPage using the X button
-            if (e.CloseReason == CloseReason.UserClosing)
+            if (!IsAdmin())
             {
-                foreach (Form form in Application.OpenForms)
-                {
-                    if (form is Form1)
-                    {
-                        form.Show();
-                        form.BringToFront();
-                        return;
-                    }
-                }
-
-                // Safety fallback: recreate start screen
-                new Form1().Show();
+                ShowPermissionDenied();
+                return;
             }
+
+            heaterForcedOn = !heaterForcedOn;
+
+            btnManualHeater.Text = heaterForcedOn
+                ? "Heater: FORCED ON"
+                : "Heater: FORCED OFF";
+
+            btnManualHeater.BackColor = heaterForcedOn
+                ? Color.LightGreen
+                : SystemColors.Control;
         }
 
+
+
+        private void btnManualFan_Click(object sender, EventArgs e)
+        {
+            if (!IsAdmin())
+            {
+                ShowPermissionDenied();
+                return;
+            }
+
+            fanForcedOn = !fanForcedOn;
+
+            btnManualFan.Text = fanForcedOn
+                ? "Fan: FORCED ON"
+                : "Fan: FORCED OFF";
+
+            btnManualFan.BackColor = fanForcedOn
+                ? Color.LightGreen
+                : SystemColors.Control;
+        }
+
+        private void btnManualPump_Click(object sender, EventArgs e)
+        {
+            if (!IsAdmin())
+            {
+                ShowPermissionDenied();
+                return;
+            }
+
+            pumpForcedOn = !pumpForcedOn;
+
+            btnManualSprinkler.Text = pumpForcedOn
+                ? "Pump: MANUAL ON"
+                : "Pump: MANUAL OFF";
+
+            btnManualSprinkler.BackColor = pumpForcedOn
+                ? Color.LightGreen
+                : SystemColors.Control;
+        }
+
+        private void chkFanOverride_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void chkHeaterOverride_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void chkPumpOverride_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
-

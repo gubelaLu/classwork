@@ -32,16 +32,21 @@ namespace classwork
             public bool Success { get; set; }
         }
 
-        private string GetLogFilePath()
-        {
-            string projectRoot = AppDomain.CurrentDomain.BaseDirectory;
-            string logFilePath = Path.Combine(projectRoot, @"..\..\..\login_log.json");
-            return Path.GetFullPath(logFilePath);
-        }
+        // Base application directory (portable & safe)
+        private static readonly string AppDataDir =
+            AppDomain.CurrentDomain.BaseDirectory;
+
+        // Shared login log file
+        private static readonly string LoginLogFilePath =
+            Path.Combine(AppDataDir, "login_log.json");
+
+        // Users database file
+        private static readonly string UsersFilePath =
+            Path.Combine(AppDataDir, "info.json");
+
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            string logFilePath = GetLogFilePath();
 
             GroupBox groupBox = new GroupBox { Text = "Login Panel", Width = 500, Height = 320 };
             this.Controls.Add(groupBox);
@@ -82,7 +87,7 @@ namespace classwork
 
             btnShowLog.Click += (s, ev) =>
             {
-                string logFile = GetLogFilePath();
+                string logFile = LoginLogFilePath;
                 if (!File.Exists(logFile))
                 {
                     MessageBox.Show("No login_log.json found.", "Log");
@@ -135,20 +140,20 @@ namespace classwork
 
                 try
                 {
-                    if (!File.Exists("info.json"))
+                    if (!File.Exists(UsersFilePath))
                     {
                         Error.ForeColor = Color.Red;
                         Error.Text = "info.json not found!";
                         return;
                     }
 
-                    string json = File.ReadAllText("info.json");
+                    string json = File.ReadAllText(UsersFilePath);
                     List<UserData> users = JsonSerializer.Deserialize<List<UserData>>(json);
 
                     var loggedUser = users.FirstOrDefault(u => u.Username == enteredUser && u.Password == enteredPassword);
                     bool success = loggedUser != null;
 
-                    LogLoginAttempt(enteredUser, success, logFilePath);
+                    LogLoginAttempt(enteredUser, success, LoginLogFilePath);
 
                     if (success)
                     {
